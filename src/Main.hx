@@ -19,24 +19,27 @@ class EcsId {
 	public final name: String;
 }
 
-// @:structInit
-// class Position {
-// 	public var x: Float;
-// 	public var y: Float;
-// }
+@:structInit
+class Position {
+	public var x: Float;
+	public var y: Float;
+}
 
-// @:structInit
-// class Health {
-// 	public var value: Int;
-// }
+@:structInit
+class Health {
+	public var value: Int;
+}
 
-// @:structInit
-// class Player {}
+@:structInit
+class Player {}
 
 @:structInit
 class Edge {
 	public var add: Null<Archetype>;
 	public var remove: Null<Archetype>;
+	public function toString() {
+		return 'Edge { add: ${add != null ? add.type : null}, remove: ${remove != null ? remove.type : null} }';
+	}
 }
 
 @:structInit
@@ -85,11 +88,7 @@ class Main {
 
 	inline public function new() {
 		final destinationArchetype = findOrCreateArchetype(emptyArchetype, [EcsComponent_id, EcsId_id]);
-		// trace(destinationArchetype);
-		// trace(destinationArchetype.entityIds);
-		// trace(destinationArchetype.components);
 		destinationArchetype.entityIds.push(EcsComponent_id);
-		// trace(destinationArchetype.components);
 		destinationArchetype.components[0].push(({}: EcsComponent));
 		destinationArchetype.components[1].push(({ name: 'EcsComponent' }: EcsId));
 		final componentRecord: Record = {
@@ -111,8 +110,8 @@ class Main {
 
 	inline public function testEcs() {
 		addEntity(Player_id);
-		addComponent(Player_id, Health_id);
-		addComponent(Player_id, Position_id);
+		addComponent(Player_id, Health_id, ({ value: 100 }: Health));
+		addComponent(Player_id, Position_id, ({ x: 3, y: 7 }: Position));
 		// final x = (ChildOf | Faction_id);
 		// trace(x);
 		// addComponent(Player_id, x);
@@ -121,10 +120,7 @@ class Main {
 		// trace((x & ChildOf > 0) ? 'yes' : 'no');
 
 		// trace(entityIndex);
-		trace('entities and components in entityIndex:');
-		for (entity => components in entityIndex) {
-			trace('$entity: $components');
-		}
+		printEntity(Player_id);
 	}
 
 	inline function addEntity(entity: EntityId) {
@@ -138,12 +134,13 @@ class Main {
 		entityIndex.set(entity, record);
 	}
 	
-	inline function addComponent(entity: EntityId, componentId: EntityId) {
+	inline function addComponent(entity: EntityId, componentId: EntityId, componentData: Any) {
 		if (!entityIndex.exists(entity)) throw 'entity $entity does not exist';
 		// if (!entityIndex.exists(componentId)) {
 		// 	entityIndex.set(componentId, [EcsComponent_id, EcsId_id]);
 		// }
-		final archetype = entityIndex[entity].archetype;
+		final record = entityIndex[entity];
+		final archetype = record.archetype;
 		final type = archetype.type;
 		if (type.contains(componentId)) {
 			trace('component $componentId already exists on entity $entity');
@@ -151,117 +148,116 @@ class Main {
 		}
 		
 		// find destination archetype
-		var node = archetype;
-		for (t in archetype.type) {
-			trace(t);
-			var edge = node.edges[t];
-			trace(edge);
-			if (edge == null) { // TODO: this is wrong? or a hack at least
-				edge = {
-					add: null,
-					remove: null,
-				};
-			}
-			if (edge.add == null) {
-				edge.add = createArchetype(node, t);
-			}
-			// if (edge.add.type.contains(componentId)) {
-			// 	node = edge.add;
-			// 	break;
-			// }
-			node = edge.add;
-		}
+		var destinationArchetype = findOrCreateArchetype(archetype, type.concat([componentId])); // TODO: The ordering of the type is not correct here, e.g. [A, C] + B => [A, C, B]
 		
 		// insert entity into component array of destination
-		// TODO: Implement!
+		destinationArchetype.entityIds.push(entity); // TODO: Is this what is meant by the above comment?
 		
-		// copy overlapping components from source to destination
-		// TODO: Implement!
+		// copy overlapping components from source to destination + insert new component
+		var index = 0;
+		var newComponentInserted = false;
+		for (i => t in type) {
+			if (!newComponentInserted && t != destinationArchetype.type[i]) {
+				destinationArchetype.components[i].push(componentData);
+				newComponentInserted = true;
+				index++;
+			}
+			destinationArchetype.components[index].push(archetype.components[i][record.row]);
+			index++;
+		}
 		
 		// remove entity from component array of source
-		// TODO: Implement!
+		archetype.entityIds.splice(record.row, 1); // TODO: Maybe this should simply clear the row, allowing it to be reused?
+		for (i => t in type) {
+			archetype.components[i].splice(record.row, 1);
+		}
+
+		// point the entity record to the new archetype
+		var newRecord: Record = {
+			archetype: destinationArchetype,
+			row: destinationArchetype.entityIds.length - 1
+		};
+		entityIndex[entity] = newRecord;
 	}
 
 	inline function findOrCreateArchetype(archetype: Archetype, type: Components): Archetype {
-		// find destination archetype
+		trace('----------');
+		trace('findOrCreateArchetype');
+		trace(archetype);
+		trace(type);
 		var node = archetype;
+		var typesSoFar = [];
 		for (t in type) {
-			trace(t);
+			typesSoFar.push(t);
+			// final edgeExists = node.edges.exists(t);
 			var edge = node.edges[t];
-			trace(edge);
-			if (edge == null) { // TODO: this is wrong? or a hack at least
+			if (edge == null) {
 				edge = {
 					add: null,
 					remove: null,
 				};
+				node.edges[t] = edge;
 			}
 			if (edge.add == null) {
-				edge.add = createArchetype(node, t);
+				final newArchetype: Archetype = {
+					type: typesSoFar,
+					entityIds: [],
+					components: [for (_ in typesSoFar) []],
+					edges: [t => {
+						add: null,
+						remove: node,
+					}],
+				};
+				edge.add = newArchetype;
 			}
-			// if (edge.add.type.contains(componentId)) {
-			// 	node = edge.add;
-			// 	break;
-			// }
-			node = edge.add;
+			node = edge.add; // move to the node that contains the component `t`
 		}
+		trace('returning node');
+		trace(node);
 		return node;
 	}
 
-	inline function createNewArchetype(componentIds: Components) {
-		return {
-			type: componentIds,
-			entityIds: [],
-			components: [],
-			length: 0,
-			edges: [], // TODO: create edges
-		};
-	}
+	// inline function createArchetype(archetype: Archetype, addComponentId: EntityId): Archetype {
+	// 	// trace('createArchetype');
+	// 	final type = archetype.type.concat([addComponentId]);
+	// 	return {
+	// 		type: type,
+	// 		entityIds: [],
+	// 		components: [for (_ in type) []],
+	// 		edges: [
+	// 			addComponentId => {
+	// 				add: null,
+	// 				remove: archetype
+	// 			}
+	// 		], // TODO: create correct edges
+	// 	};
+	// }
 
-	inline function createArchetype(archetype: Archetype, addComponentId: EntityId): Archetype {
-		trace('createArchetype');
-		final type = archetype.type.concat([addComponentId]);
-		return {
-			type: type,
-			entityIds: [],
-			components: [for (_ in type) []],
-			edges: [
-				addComponentId => {
-					add: null,
-					remove: archetype
-				}
-			], // TODO: create correct edges
-		};
-		// final type = archetype.type;
-		// final entityIds = archetype.entityIds;
-		// final components = archetype.components;
-		// final length = archetype.length;
-		// final edges = archetype.edges;
-		// final newArchetype = new Archetype();
-		// newArchetype.type = type.concat(componentId);
-		// newArchetype.entityIds = entityIds;
-		// newArchetype.components = components;
-		// newArchetype.length = length;
-		// newArchetype.edges = edges;
-		// return newArchetype;
-	}
-
-	inline function getComponent(entity: EntityId, componentId: EntityId): Any {
+	function printEntity(entity: EntityId) {
+		trace('entity $entity:');
 		final record = entityIndex[entity];
-		final archetype = record.archetype;
-		final type = archetype.type;
-		for (t in type) {
-			if (t == componentId) return archetype.components[record.row];
+		for (i => component in record.archetype.components) {
+			trace('    #$i: $component');
 		}
-		return null;
 	}
 
-	inline function hasComponent(entity: EntityId, componentId: EntityId) {
-		final record = entityIndex[entity];
-		final archetype = record.archetype;
-		final type = archetype.type;
-		for (t in type) {
-			if (t == componentId) return true;
-		}
-		return false;
-	}
+	// inline function getComponent(entity: EntityId, componentId: EntityId): Any {
+	// 	final record = entityIndex[entity];
+	// 	final archetype = record.archetype;
+	// 	final type = archetype.type;
+	// 	for (i => t in type) {
+	// 		if (t == componentId) return archetype.components[i][record.row];
+	// 	}
+	// 	return null;
+	// }
+
+	// inline function hasComponent(entity: EntityId, componentId: EntityId) {
+	// 	final record = entityIndex[entity];
+	// 	final archetype = record.archetype;
+	// 	final type = archetype.type;
+	// 	for (t in type) {
+	// 		if (t == componentId) return true;
+	// 	}
+	// 	return false;
+	// }
 }
