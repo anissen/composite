@@ -12,11 +12,17 @@ final ChildOf: EntityId = 2 << 28;
 
 @:structInit
 class EcsComponent {
+	public function toString() {
+		return 'EcsComponent';
+	}
 }
 
 @:structInit
 class EcsId {
 	public final name: String;
+	public function toString() {
+		return 'EcsId { name: "$name" }';
+	}
 }
 
 @:structInit
@@ -108,9 +114,12 @@ class Main {
 		testEcs();	
 	}
 
-	inline public function testEcs() {
-		addEntity(Player_id);
+	public function testEcs() {
+		addEntity(Player_id, 'Player');
+		printArchetypes(emptyArchetype);
+		printEntity(Player_id);
 		addComponent(Player_id, Health_id, ({ value: 100 }: Health));
+		printEntity(Player_id);
 		addComponent(Player_id, Position_id, ({ x: 3, y: 7 }: Position));
 		// final x = (ChildOf | Faction_id);
 		// trace(x);
@@ -123,9 +132,9 @@ class Main {
 		printEntity(Player_id);
 	}
 
-	inline function addEntity(entity: EntityId) {
+	function addEntity(entity: EntityId, name: String) {
 		final destinationArchetype = findOrCreateArchetype(emptyArchetype, [EcsId_id]);
-		// destinationArchetype.components.push({})
+		destinationArchetype.components[0].push(({ name: name }: EcsId));
 		destinationArchetype.entityIds.push(entity);
 		final record: Record = {
 			archetype: destinationArchetype,
@@ -134,7 +143,7 @@ class Main {
 		entityIndex.set(entity, record);
 	}
 	
-	inline function addComponent(entity: EntityId, componentId: EntityId, componentData: Any) {
+	function addComponent(entity: EntityId, componentId: EntityId, componentData: Any) {
 		if (!entityIndex.exists(entity)) throw 'entity $entity does not exist';
 		// if (!entityIndex.exists(componentId)) {
 		// 	entityIndex.set(componentId, [EcsComponent_id, EcsId_id]);
@@ -148,7 +157,9 @@ class Main {
 		}
 		
 		// find destination archetype
-		var destinationArchetype = findOrCreateArchetype(archetype, type.concat([componentId])); // TODO: The ordering of the type is not correct here, e.g. [A, C] + B => [A, C, B]
+		final destinationType = type.concat([componentId]);
+		destinationType.sort((x, y) -> x - y);
+		var destinationArchetype = findOrCreateArchetype(archetype, destinationType);
 		
 		// insert entity into component array of destination
 		destinationArchetype.entityIds.push(entity); // TODO: Is this what is meant by the above comment?
@@ -158,6 +169,7 @@ class Main {
 		var newComponentInserted = false;
 		for (i => t in type) {
 			if (!newComponentInserted && t != destinationArchetype.type[i]) {
+				trace(componentData);
 				destinationArchetype.components[i].push(componentData);
 				newComponentInserted = true;
 				index++;
@@ -165,9 +177,12 @@ class Main {
 			destinationArchetype.components[index].push(archetype.components[i][record.row]);
 			index++;
 		}
+		if (!newComponentInserted) {
+			destinationArchetype.components[index].push(componentData);
+		}
 		
 		// remove entity from component array of source
-		archetype.entityIds.splice(record.row, 1); // TODO: Maybe this should simply clear the row, allowing it to be reused?
+		archetype.entityIds.splice(record.row, 1); // TODO: We should probably swap the old entity down to the end of the `active` part of the array instead
 		for (i => t in type) {
 			archetype.components[i].splice(record.row, 1);
 		}
@@ -180,11 +195,7 @@ class Main {
 		entityIndex[entity] = newRecord;
 	}
 
-	inline function findOrCreateArchetype(archetype: Archetype, type: Components): Archetype {
-		trace('----------');
-		trace('findOrCreateArchetype');
-		trace(archetype);
-		trace(type);
+	function findOrCreateArchetype(archetype: Archetype, type: Components): Archetype {
 		var node = archetype;
 		var typesSoFar = [];
 		for (t in type) {
@@ -198,9 +209,10 @@ class Main {
 				};
 				node.edges[t] = edge;
 			}
+			// TODO: Also handle the case where we want to remove a component from an entity.
 			if (edge.add == null) {
 				final newArchetype: Archetype = {
-					type: typesSoFar,
+					type: typesSoFar.copy(),
 					entityIds: [],
 					components: [for (_ in typesSoFar) []],
 					edges: [t => {
@@ -212,8 +224,6 @@ class Main {
 			}
 			node = edge.add; // move to the node that contains the component `t`
 		}
-		trace('returning node');
-		trace(node);
 		return node;
 	}
 
@@ -238,6 +248,15 @@ class Main {
 		final record = entityIndex[entity];
 		for (i => component in record.archetype.components) {
 			trace('    #$i: $component');
+		}
+	}
+
+	function printArchetypes(node: Archetype) {
+		trace('archetype: $node');
+		for (edge in node.edges) {
+			if (edge != null && edge.add != null) {
+				printArchetypes(edge.add);
+			}
 		}
 	}
 
