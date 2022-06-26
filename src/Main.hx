@@ -29,11 +29,17 @@ class EcsId {
 class Position {
 	public var x: Float;
 	public var y: Float;
+	public function toString() {
+		return 'Position { x: $x, y: $y }';
+	}
 }
 
 @:structInit
 class Health {
 	public var value: Int;
+	public function toString() {
+		return 'Health { value: $value }';
+	}
 }
 
 @:structInit
@@ -116,20 +122,21 @@ class Main {
 
 	public function testEcs() {
 		addEntity(Player_id, 'Player');
-		printArchetypes(emptyArchetype);
-		printEntity(Player_id);
 		addComponent(Player_id, Health_id, ({ value: 100 }: Health));
-		printEntity(Player_id);
 		addComponent(Player_id, Position_id, ({ x: 3, y: 7 }: Position));
 		// final x = (ChildOf | Faction_id);
 		// trace(x);
-		// addComponent(Player_id, x);
+		// addComponent(Player_id, x, null);
 
 		// trace('player is child of faction?');
 		// trace((x & ChildOf > 0) ? 'yes' : 'no');
 
 		// trace(entityIndex);
 		printEntity(Player_id);
+
+		trace(getComponent(Player_id, Health_id));
+		// trace(getComponent(Player_id, Faction_id));
+		trace(getComponents(Player_id));
 	}
 
 	function addEntity(entity: EntityId, name: String) {
@@ -260,15 +267,26 @@ class Main {
 		}
 	}
 
-	// inline function getComponent(entity: EntityId, componentId: EntityId): Any {
-	// 	final record = entityIndex[entity];
-	// 	final archetype = record.archetype;
-	// 	final type = archetype.type;
-	// 	for (i => t in type) {
-	// 		if (t == componentId) return archetype.components[i][record.row];
-	// 	}
-	// 	return null;
-	// }
+	function getComponent(entity: EntityId, componentId: EntityId): Any {
+		final record = entityIndex[entity];
+		final archetype = record.archetype;
+		final type = archetype.type;
+		for (i => t in type) {
+			if (t == componentId) return archetype.components[i][record.row];
+		}
+		return null;
+	}
+	
+	function getComponents(entity: EntityId): Array<Any> {
+		final record = entityIndex[entity];
+		final archetype = record.archetype;
+		final type = archetype.type;
+		final components = [];
+		for (i => t in type) {
+			components.push(archetype.components[i][record.row]);
+		}
+		return components;
+	}
 
 	// inline function hasComponent(entity: EntityId, componentId: EntityId) {
 	// 	final record = entityIndex[entity];
