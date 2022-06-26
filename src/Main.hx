@@ -136,7 +136,9 @@ class Main {
 
 		trace(getComponent(Player_id, Health_id));
 		// trace(getComponent(Player_id, Faction_id));
-		trace(getComponents(Player_id));
+		trace(getComponentsForEntity(Player_id));
+
+		trace(getEntitiesWithComponent(Health_id));
 	}
 
 	function addEntity(entity: EntityId, name: String) {
@@ -267,6 +269,7 @@ class Main {
 		}
 	}
 
+	// TODO: Inline functions!
 	function getComponent(entity: EntityId, componentId: EntityId): Any {
 		final record = entityIndex[entity];
 		final archetype = record.archetype;
@@ -277,7 +280,7 @@ class Main {
 		return null;
 	}
 	
-	function getComponents(entity: EntityId): Array<Any> {
+	function getComponentsForEntity(entity: EntityId): Array<Any> {
 		final record = entityIndex[entity];
 		final archetype = record.archetype;
 		final type = archetype.type;
@@ -286,6 +289,35 @@ class Main {
 			components.push(archetype.components[i][record.row]);
 		}
 		return components;
+	}
+
+	static final componentLookupCache: Map<EntityId, Array<Archetype>> = [];
+	function getEntitiesWithComponent(componentId: EntityId): Array<EntityId> {
+		// TODO: Invalidate (some) caches when new archetypes are created
+		final cache = componentLookupCache[componentId];
+		if (cache != null) {
+			trace('cache hit');
+			return Lambda.flatten(cache.map(archetype -> archetype.entityIds));
+		}
+		
+		final next: Array<Null<Archetype>> = [emptyArchetype];
+		var archetypes: Array<Archetype> = [];
+		var entities: Array<EntityId> = [];
+		while (next.length != 0) {
+			final node = next.pop();
+			if (node.type.contains(componentId)) {
+				archetypes.push(node);
+				entities = entities.concat(node.entityIds);
+			}
+			for (edge in node.edges) {
+				if (edge != null && edge.add != null) {
+					next.push(edge.add);
+				}
+			}
+		}
+		trace('cache miss');
+		componentLookupCache[componentId] = archetypes;
+		return entities;
 	}
 
 	// inline function hasComponent(entity: EntityId, componentId: EntityId) {
