@@ -43,6 +43,14 @@ class Health {
 }
 
 @:structInit
+class Faction {
+	public var color: String;
+	public function toString() {
+		return 'Faction { color: "$color" }';
+	}
+}
+
+@:structInit
 class Player {}
 
 @:structInit
@@ -124,12 +132,16 @@ class Main {
 		addEntity(Player_id, 'Player');
 		addComponent(Player_id, Health_id, ({ value: 100 }: Health));
 		addComponent(Player_id, Position_id, ({ x: 3, y: 7 }: Position));
-		// final x = (ChildOf | Faction_id);
-		// trace(x);
-		// addComponent(Player_id, x, null);
-
+		final x = (ChildOf | Faction_id);
+		trace(x);
+		addComponent(Player_id, x, ({ color: 'red' }: Faction));
+		
 		// trace('player is child of faction?');
 		// trace((x & ChildOf > 0) ? 'yes' : 'no');
+
+		addEntity(45, 'Blah?');
+		addComponent(45, Position_id, ({ x: 1, y: 7 }: Position));
+		addComponent(45, Health_id, ({ value: 76 }: Health));
 
 		// trace(entityIndex);
 		printEntity(Player_id);
@@ -139,6 +151,13 @@ class Main {
 		trace(getComponentsForEntity(Player_id));
 
 		trace(getEntitiesWithComponent(Health_id));
+		trace('//////////////////////////////');
+		// trace(query([Health_id]));
+		for (archetype in query([Health_id, Position_id])) {
+			for (entityId in archetype.entityIds) {
+				printEntity(entityId);
+			}
+		}
 	}
 
 	function addEntity(entity: EntityId, name: String) {
@@ -318,6 +337,54 @@ class Main {
 		trace('cache miss');
 		componentLookupCache[componentId] = archetypes;
 		return entities;
+	}
+
+	function getArchetypesWithComponent(componentId: EntityId): Array<Archetype> {
+		final next: Array<Null<Archetype>> = [emptyArchetype];
+		var archetypes: Array<Archetype> = [];
+		while (next.length != 0) {
+			final node = next.pop();
+			if (node.type.contains(componentId)) {
+				archetypes.push(node);
+			}
+			for (edge in node.edges) {
+				if (edge != null && edge.add != null) {
+					next.push(edge.add);
+				}
+			}
+		}
+		return archetypes;
+	}
+
+	// TODO: Make proper terms (e.g. Component, !Component, OR, ...)
+	function query(terms: Array<EntityId>): Array<Archetype> {
+		// Pseudo code (see https://flecs.docsforge.com/master/query-manual/#query-kinds):
+		// Archetype archetypes[] = filter.get_archetypes_for_first_term();
+		// for archetype in archetypes:
+		// 		bool match = true;
+		// 		for each term in filter.range(1, filter.length):
+		// 			if !archetype.match(term):
+		// 				match = false;
+		// 				break;
+		// 		if match:
+		// 			yield archetype;
+		if (terms.length == 0) return [];
+		final firstTerm = terms[0];
+		final archetypes = [];
+		final archetypeProspects = getArchetypesWithComponent(firstTerm);
+		for (archetype in archetypeProspects) {
+			var match = true;
+			for (i in 1...terms.length) {
+				if (!archetype.type.contains(terms[i])) {
+					match = false;
+					break;
+				}
+			}
+			if (match) {
+				archetypes.push(archetype);
+			}
+		}
+		return archetypes;
 	}
 
 	// inline function hasComponent(entity: EntityId, componentId: EntityId) {
