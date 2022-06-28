@@ -153,11 +153,26 @@ class Main {
 		trace(getEntitiesWithComponent(Health_id));
 		trace('//////////////////////////////');
 		// trace(query([Health_id]));
-		for (archetype in query([Health_id, Position_id])) {
+		final terms = [Health_id, Position_id];
+		for (archetype in queryArchetypes(terms)) {
+			// for (entityId in archetype.entityIds) {
+			// 	printEntity(entityId);
+			// }
+
+			// TODO: Find all Health and Position components for each `archetype`
 			for (entityId in archetype.entityIds) {
-				printEntity(entityId);
+				final record = entityIndex[entityId];
+				for (i => t in archetype.type) {
+					if (terms.contains(t)) trace(archetype.components[i][record.row]);
+				}
 			}
 		}
+		trace('//////////////////////////////2');
+		query(terms, (components) -> {
+			trace(components[0]);
+			trace(components[1]);
+		});
+
 	}
 
 	function addEntity(entity: EntityId, name: String) {
@@ -357,7 +372,7 @@ class Main {
 	}
 
 	// TODO: Make proper terms (e.g. Component, !Component, OR, ...)
-	function query(terms: Array<EntityId>): Array<Archetype> {
+	function queryArchetypes(terms: Array<EntityId>): Array<Archetype> {
 		// Pseudo code (see https://flecs.docsforge.com/master/query-manual/#query-kinds):
 		// Archetype archetypes[] = filter.get_archetypes_for_first_term();
 		// for archetype in archetypes:
@@ -372,6 +387,7 @@ class Main {
 		final firstTerm = terms[0];
 		final archetypes = [];
 		final archetypeProspects = getArchetypesWithComponent(firstTerm);
+		// TODO: Also find the component arrays here???
 		for (archetype in archetypeProspects) {
 			var match = true;
 			for (i in 1...terms.length) {
@@ -385,6 +401,24 @@ class Main {
 			}
 		}
 		return archetypes;
+	}
+
+	function query(terms: Array<EntityId>, fn: (components: Array<Any>) -> Void) {
+		for (archetype in queryArchetypes(terms)) {
+			// for (entityId in archetype.entityIds) {
+			// 	printEntity(entityId);
+			// }
+
+			// TODO: Find all Health and Position components for each `archetype`
+			for (entityId in archetype.entityIds) {
+				final components = [
+					for (term in terms) {
+						archetype.components[archetype.type.indexOf(term)];
+					}
+				];
+				fn(components);
+			}
+		}
 	}
 
 	// inline function hasComponent(entity: EntityId, componentId: EntityId) {
