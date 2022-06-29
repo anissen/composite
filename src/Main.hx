@@ -132,19 +132,30 @@ class Main {
 		addEntity(Player_id, 'Player');
 		addComponent(Player_id, Health_id, ({ value: 100 }: Health));
 		addComponent(Player_id, Position_id, ({ x: 3, y: 7 }: Position));
+
 		final x = (ChildOf | Faction_id);
 		trace(x);
 		addComponent(Player_id, x, ({ color: 'red' }: Faction));
 		
-		// trace('player is child of faction?');
-		// trace((x & ChildOf > 0) ? 'yes' : 'no');
+		trace('player is child of faction?');
+		trace((x & ChildOf > 0) ? 'yes' : 'no');
+
+		addEntity(Player_id + 1, 'Player 2');
+		addComponent(Player_id + 1, Health_id, ({ value: 83 }: Health));
+		addComponent(Player_id + 1, Position_id, ({ x: 2, y: 2 }: Position));
+		
+		addEntity(Player_id + 2, 'Player 3');
+		addComponent(Player_id + 2, Health_id, ({ value: 75 }: Health));
+		addComponent(Player_id + 2, Position_id, ({ x: 3, y: 3 }: Position));
+
 
 		addEntity(45, 'Blah?');
 		addComponent(45, Position_id, ({ x: 1, y: 7 }: Position));
-		addComponent(45, Health_id, ({ value: 76 }: Health));
+		// addComponent(45, Health_id, ({ value: 76 }: Health));
 
 		// trace(entityIndex);
 		printEntity(Player_id);
+		printEntity(Player_id + 1);
 
 		trace(getComponent(Player_id, Health_id));
 		// trace(getComponent(Player_id, Faction_id));
@@ -159,20 +170,24 @@ class Main {
 			// 	printEntity(entityId);
 			// }
 
-			// TODO: Find all Health and Position components for each `archetype`
-			for (entityId in archetype.entityIds) {
-				final record = entityIndex[entityId];
-				for (i => t in archetype.type) {
-					if (terms.contains(t)) trace(archetype.components[i][record.row]);
-				}
+			for (i => term in terms) {
+				trace(archetype.components[archetype.type.indexOf(term)]);
 			}
 		}
 		trace('//////////////////////////////2');
 		query(terms, (components) -> {
-			trace(components[0]);
-			trace(components[1]);
+			final healthComponents: Array<Health> = components[0];
+			for (component in healthComponents) {
+				component.value -= 10;
+				trace(component);
+			}
+			// trace(components[0]);
+			// trace(components[1]);
 		});
 
+		trace('//////////////////////////////3');
+		// TODO: In the following list there should be no archetypes with empty `entityId` and no two archetypes with same `type`
+		printArchetypes(emptyArchetype);
 	}
 
 	function addEntity(entity: EntityId, name: String) {
@@ -290,7 +305,7 @@ class Main {
 		trace('entity $entity:');
 		final record = entityIndex[entity];
 		for (i => component in record.archetype.components) {
-			trace('    #$i: $component');
+			trace('    #$i: ${component[record.row]}');
 		}
 	}
 
@@ -404,21 +419,17 @@ class Main {
 	}
 
 	function query(terms: Array<EntityId>, fn: (components: Array<Any>) -> Void) {
-		for (archetype in queryArchetypes(terms)) {
-			// for (entityId in archetype.entityIds) {
-			// 	printEntity(entityId);
-			// }
+		final componentsForTerms = [ for (term in terms) [] ];
+		final archetypes = queryArchetypes(terms);
 
-			// TODO: Find all Health and Position components for each `archetype`
-			for (entityId in archetype.entityIds) {
-				final components = [
-					for (term in terms) {
-						archetype.components[archetype.type.indexOf(term)];
-					}
-				];
-				fn(components);
+		for (i => term in terms) {
+			for (archetype in archetypes) {
+				componentsForTerms[i] = componentsForTerms[i].concat(archetype.components[archetype.type.indexOf(term)]);
 			}
 		}
+		trace('componentsForTerms: $componentsForTerms');
+		// trace(componentsForTerms);
+		fn(componentsForTerms);
 	}
 
 	// inline function hasComponent(entity: EntityId, componentId: EntityId) {
