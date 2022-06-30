@@ -207,6 +207,7 @@ class Main {
 	}
 	
 	function addComponent(entity: EntityId, componentId: EntityId, componentData: Any) {
+		trace('');
 		if (!entityIndex.exists(entity)) throw 'entity $entity does not exist';
 		// if (!entityIndex.exists(componentId)) {
 		// 	entityIndex.set(componentId, [EcsComponent_id, EcsId_id]);
@@ -223,6 +224,8 @@ class Main {
 		final destinationType = type.concat([componentId]);
 		destinationType.sort((x, y) -> x - y);
 		var destinationArchetype = findOrCreateArchetype(archetype, destinationType);
+
+		trace('going from archetype $type (id: ${archetype.id}) to $destinationType (id: ${destinationArchetype.id})');
 		
 		// insert entity into component array of destination
 		destinationArchetype.entityIds.push(entity); // TODO: Is this what is meant by the above comment?
@@ -247,32 +250,35 @@ class Main {
 		// remove entity from component array of source
 		archetype.entityIds.splice(record.row, 1); // TODO: We should probably swap the old entity down to the end of the `active` part of the array instead
 		
-		// Remove archetype
+		// Remove source archetype if it is now empty
 		if (archetype.entityIds.length == 0) {
-			for (t => edge in archetype.edges) {
-				// TODO: Remove archetype from the edges of adjacent archetypes
-				if (edge.add != null) {
-					final adjacentAdd = edge.add;
-					for (t2 => adjacentEdge in adjacentAdd.edges) {
-						if (adjacentEdge.remove != null) trace('${adjacentEdge.remove.id} == ${archetype.id}');
-						if (t2 == t && adjacentEdge.remove == archetype) {
-							trace('removing `remove` edge: ' + t + ' -> ' + t2);
-							adjacentEdge.remove = null;
-						}
-					} 
-				}
-				if (edge.remove != null) {
-					final adjacentRemove = edge.remove;
-					for (t2 => adjacentEdge in adjacentRemove.edges) {
-						if (adjacentEdge.add != null) trace('${adjacentEdge.add.id} == ${archetype.id}');
-						if (t2 == t && adjacentEdge.add == archetype) {
-							trace('removing `add` edge: ' + t + ' -> ' + t2);
-							adjacentEdge.add = null;
-						}
-					} 
-				}
-			}
+			// for (t => edge in archetype.edges) {
+			// 	// TODO: Remove archetype from the edges of adjacent archetypes
+			// 	if (edge.add != null) {
+			// 		final adjacentAdd = edge.add;
+			// 		for (t2 => adjacentEdge in adjacentAdd.edges) {
+			// 			if (adjacentEdge.remove != null) trace('${adjacentEdge.remove.id} == ${archetype.id}');
+			// 			if (t2 == t && adjacentEdge.remove == archetype) {
+			// 				trace('removing `remove` edge: ' + t + ' -> ' + t2);
+			// 				trace(adjacentEdge.remove);
+			// 				adjacentEdge.remove = null;
+			// 			}
+			// 		} 
+			// 	}
+			// 	if (edge.remove != null) {
+			// 		final adjacentRemove = edge.remove;
+			// 		for (t2 => adjacentEdge in adjacentRemove.edges) {
+			// 			if (adjacentEdge.add != null) trace('${adjacentEdge.add.id} == ${archetype.id}');
+			// 			if (t2 == t && adjacentEdge.add == archetype) {
+			// 				trace('removing `add` edge: ' + t + ' -> ' + t2);
+			// 				trace(adjacentEdge.add);
+			// 				adjacentEdge.add = null;
+			// 			}
+			// 		} 
+			// 	}
+			// }
 		}
+		// remove components from source archetype
 		for (i => t in type) {
 			archetype.components[i].splice(record.row, 1);
 		}
@@ -282,15 +288,16 @@ class Main {
 			archetype: destinationArchetype,
 			row: destinationArchetype.entityIds.length - 1
 		};
-		entityIndex[entity] = newRecord;
+		entityIndex.set(entity, newRecord);
 	}
 
 	function findOrCreateArchetype(archetype: Archetype, type: Components): Archetype {
+		trace('findOrCreateArchetype(${archetype.type}, $type)');
 		var node = archetype;
 		var typesSoFar = [];
 		for (t in type) {
 			typesSoFar.push(t);
-			// final edgeExists = node.edges.exists(t);
+			if (archetype.type.contains(t)) continue;
 			var edge = node.edges[t];
 			if (edge == null) {
 				edge = {
@@ -301,6 +308,7 @@ class Main {
 			}
 			// TODO: Also handle the case where we want to remove a component from an entity.
 			if (edge.add == null) {
+				trace('creating new archetype for $typesSoFar');
 				final newArchetype: Archetype = {
 					type: typesSoFar.copy(),
 					entityIds: [],
