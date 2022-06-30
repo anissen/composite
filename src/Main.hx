@@ -64,14 +64,16 @@ class Edge {
 
 @:structInit
 class Archetype {
+	static var archetypeId = 0;
 	public final type: Components;
 	public final entityIds: Array<EntityId>;
 	public final components: Array<Array<Any>>;
+	public final id = archetypeId++;
 	// public final length: Int;
 	// public final edges: Array<Edge>;
 	public final edges: Map<EntityId, Edge>;
 	public function toString() {
-		return 'Archetype { type: $type, entityId: $entityIds, edges: $edges }';
+		return 'Archetype [$id] { \n\ttype: $type, \n\tentityId: $entityIds, \n\tedges: $edges \n}';
 	}
 }
 
@@ -186,8 +188,11 @@ class Main {
 		});
 
 		trace('//////////////////////////////3');
-		// TODO: In the following list there should be no archetypes with empty `entityId` and no two archetypes with same `type`
+		// TODO: In the following list there should be no archetypes with empty `entityId` (except for `emptyArchetype`) and no two archetypes with same `type`
 		printArchetypes(emptyArchetype);
+
+		trace('//////////////////////////////4');
+		printArchetypeGraph(emptyArchetype);
 	}
 
 	function addEntity(entity: EntityId, name: String) {
@@ -241,6 +246,33 @@ class Main {
 		
 		// remove entity from component array of source
 		archetype.entityIds.splice(record.row, 1); // TODO: We should probably swap the old entity down to the end of the `active` part of the array instead
+		
+		// Remove archetype
+		if (archetype.entityIds.length == 0) {
+			for (t => edge in archetype.edges) {
+				// TODO: Remove archetype from the edges of adjacent archetypes
+				if (edge.add != null) {
+					final adjacentAdd = edge.add;
+					for (t2 => adjacentEdge in adjacentAdd.edges) {
+						if (adjacentEdge.remove != null) trace('${adjacentEdge.remove.id} == ${archetype.id}');
+						if (t2 == t && adjacentEdge.remove == archetype) {
+							trace('removing `remove` edge: ' + t + ' -> ' + t2);
+							adjacentEdge.remove = null;
+						}
+					} 
+				}
+				if (edge.remove != null) {
+					final adjacentRemove = edge.remove;
+					for (t2 => adjacentEdge in adjacentRemove.edges) {
+						if (adjacentEdge.add != null) trace('${adjacentEdge.add.id} == ${archetype.id}');
+						if (t2 == t && adjacentEdge.add == archetype) {
+							trace('removing `add` edge: ' + t + ' -> ' + t2);
+							adjacentEdge.add = null;
+						}
+					} 
+				}
+			}
+		}
 		for (i => t in type) {
 			archetype.components[i].splice(record.row, 1);
 		}
@@ -314,6 +346,19 @@ class Main {
 		for (edge in node.edges) {
 			if (edge != null && edge.add != null) {
 				printArchetypes(edge.add);
+			}
+		}
+	}
+
+	function printArchetypeGraph(node: Archetype) {
+		Sys.println('"${node.type}";');
+		for (t => edge in node.edges) {
+			if (edge != null && edge.add != null) {
+				Sys.println('"${node.type}" -> "${edge.add.type}" [label="add ${t}"];');
+				printArchetypeGraph(edge.add);
+			}
+			if (edge != null && edge.remove != null) {
+				Sys.println('"${node.type}" -> "${edge.remove.type}" [label="remove ${t}"];');
 			}
 		}
 	}
