@@ -1,4 +1,5 @@
 -cp src
+-cp examples
 -D analyzer-optimize
 --debug
---run Main
+--run examples.Basic

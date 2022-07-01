@@ -1,3 +1,7 @@
+package;
+
+// TODO: Split into separate local domain files.
+
 // Based on https://ajmmertens.medium.com/building-an-ecs-1-types-hierarchies-and-prefabs-9f07666a1e9d
 abstract EntityId(haxe.Int32) from Int to Int {}
 // typedef ComponentId = EntityId;
@@ -6,6 +10,9 @@ typedef Components = Array<EntityId>;
 // Type flags
 final InstanceOf: EntityId = 1 << 29;
 final ChildOf: EntityId = 2 << 28;
+
+final EcsComponent_id = 1;
+final EcsId_id = 2;
 
 @:structInit
 class EcsComponent {
@@ -21,34 +28,6 @@ class EcsId {
 		return 'EcsId { name: "$name" }';
 	}
 }
-
-@:structInit
-class Position {
-	public var x: Float;
-	public var y: Float;
-	public function toString() {
-		return 'Position { x: $x, y: $y }';
-	}
-}
-
-@:structInit
-class Health {
-	public var value: Int;
-	public function toString() {
-		return 'Health { value: $value }';
-	}
-}
-
-@:structInit
-class Faction {
-	public var color: String;
-	public function toString() {
-		return 'Faction { color: "$color" }';
-	}
-}
-
-@:structInit
-class Player {}
 
 @:structInit
 class Edge {
@@ -80,21 +59,9 @@ class Record {
 	}
 }
 
-// TODO: Make enum
-final EcsComponent_id = 1;
-final EcsId_id = 2;
-final Health_id = 10;
-final Position_id = 20;
-final Player_id = 30;
-final Faction_id: EntityId = 70;
-
-class Main {
-	static function main() {
-		new Main();
-	}
-
+class Context {
 	final entityIndex = new Map<EntityId, Record>();
-	final emptyArchetype: Archetype = {
+	public final emptyArchetype: Archetype = {
 		type: [],
 		entityIds: [],
 		components: [],
@@ -121,67 +88,9 @@ class Main {
 			row: destinationArchetype.entityIds.length - 1,
 		};	
 		entityIndex.set(EcsId_id, idRecord);
-		testEcs();	
 	}
 
-	public function testEcs() {
-		addEntity(Player_id, 'Player');
-		addComponent(Player_id, Health_id, ({ value: 100 }: Health));
-		addComponent(Player_id, Position_id, ({ x: 3, y: 7 }: Position));
-
-		final x = (ChildOf | Faction_id);
-		trace(x);
-		addComponent(Player_id, x, ({ color: 'red' }: Faction));
-		
-		trace('player is child of faction?');
-		trace((x & ChildOf > 0) ? 'yes' : 'no');
-
-		addEntity(Player_id + 1, 'Player 2');
-		addComponent(Player_id + 1, Health_id, ({ value: 83 }: Health));
-		addComponent(Player_id + 1, Position_id, ({ x: 2, y: 2 }: Position));
-		
-		addEntity(Player_id + 2, 'Player 3');
-		addComponent(Player_id + 2, Health_id, ({ value: 75 }: Health));
-		addComponent(Player_id + 2, Position_id, ({ x: 3, y: 3 }: Position));
-
-
-		addEntity(45, 'Blah?');
-		addComponent(45, Position_id, ({ x: 1, y: 7 }: Position));
-		// addComponent(45, Health_id, ({ value: 76 }: Health));
-
-		// trace(entityIndex);
-		printEntity(Player_id);
-		printEntity(Player_id + 1);
-
-		trace(getComponent(Player_id, Health_id));
-		trace(getComponentsForEntity(Player_id));
-
-		trace(getEntitiesWithComponent(Health_id));
-		trace('//////////////////////////////');
-		final terms = [Health_id, Position_id];
-		for (archetype in queryArchetypes(terms)) {
-			for (i => term in terms) {
-				trace(archetype.components[archetype.type.indexOf(term)]);
-			}
-		}
-		trace('//////////////////////////////2');
-		query(terms, (components) -> {
-			final healthComponents: Array<Health> = components[0];
-			for (component in healthComponents) {
-				component.value -= 10;
-				trace(component);
-			}
-		});
-
-		trace('//////////////////////////////3');
-		// TODO: In the following list there should be no archetypes with empty `entityId` (except for `emptyArchetype`) and no two archetypes with same `type`
-		printArchetypes(emptyArchetype);
-
-		trace('//////////////////////////////4');
-		printArchetypeGraph(emptyArchetype);
-	}
-
-	function addEntity(entity: EntityId, name: String) {
+	public function addEntity(entity: EntityId, name: String) {
 		final destinationArchetype = findOrCreateArchetype(emptyArchetype, [EcsId_id]);
 		destinationArchetype.components[0].push(({ name: name }: EcsId));
 		destinationArchetype.entityIds.push(entity);
@@ -192,7 +101,7 @@ class Main {
 		entityIndex.set(entity, record);
 	}
 	
-	function addComponent(entity: EntityId, componentId: EntityId, componentData: Any) {
+	public function addComponent(entity: EntityId, componentId: EntityId, componentData: Any) {
 		if (!entityIndex.exists(entity)) throw 'entity $entity does not exist';
 		final record = entityIndex[entity];
 		final archetype = record.archetype;
@@ -305,7 +214,7 @@ class Main {
 		return node;
 	}
 
-	function printEntity(entity: EntityId) {
+	public function printEntity(entity: EntityId) {
 		trace('entity $entity:');
 		final record = entityIndex[entity];
 		for (i => component in record.archetype.components) {
@@ -313,7 +222,7 @@ class Main {
 		}
 	}
 
-	function printArchetypes(node: Archetype) {
+	public function printArchetypes(node: Archetype) {
 		trace('archetype: $node');
 		for (edge in node.edges) {
 			if (edge != null && edge.add != null) {
@@ -322,7 +231,7 @@ class Main {
 		}
 	}
 
-	function printArchetypeGraph(node: Archetype) {
+	public function printArchetypeGraph(node: Archetype) {
 		Sys.println('"${node.type}";');
 		for (t => edge in node.edges) {
 			if (edge != null && edge.add != null) {
@@ -336,7 +245,7 @@ class Main {
 	}
 
 	// TODO: Inline functions!
-	function getComponent(entity: EntityId, componentId: EntityId): Any {
+	public function getComponent(entity: EntityId, componentId: EntityId): Any {
 		final record = entityIndex[entity];
 		final archetype = record.archetype;
 		final type = archetype.type;
@@ -346,7 +255,7 @@ class Main {
 		return null;
 	}
 	
-	function getComponentsForEntity(entity: EntityId): Array<Any> {
+	public function getComponentsForEntity(entity: EntityId): Array<Any> {
 		final record = entityIndex[entity];
 		final archetype = record.archetype;
 		final type = archetype.type;
@@ -358,7 +267,7 @@ class Main {
 	}
 
 	static final componentLookupCache: Map<EntityId, Array<Archetype>> = [];
-	function getEntitiesWithComponent(componentId: EntityId): Array<EntityId> {
+	public function getEntitiesWithComponent(componentId: EntityId): Array<EntityId> {
 		// TODO: Invalidate (some) caches when new archetypes are created
 		final cache = componentLookupCache[componentId];
 		if (cache != null) {
@@ -404,7 +313,7 @@ class Main {
 	}
 
 	// TODO: Make proper terms (e.g. Component, !Component, OR, ...)
-	function queryArchetypes(terms: Array<EntityId>): Array<Archetype> {
+	public function queryArchetypes(terms: Array<EntityId>): Array<Archetype> {
 		// Pseudo code (see https://flecs.docsforge.com/master/query-manual/#query-kinds):
 		// Archetype archetypes[] = filter.get_archetypes_for_first_term();
 		// for archetype in archetypes:
@@ -435,7 +344,7 @@ class Main {
 		return archetypes;
 	}
 
-	function query(terms: Array<EntityId>, fn: (components: Array<Any>) -> Void) {
+	public function query(terms: Array<EntityId>, fn: (components: Array<Any>) -> Void) {
 		final componentsForTerms = [ for (term in terms) [] ];
 		final archetypes = queryArchetypes(terms);
 
