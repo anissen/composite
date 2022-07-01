@@ -1,9 +1,6 @@
-import haxe.display.Display.DeterminePackageResult;
-
 // Based on https://ajmmertens.medium.com/building-an-ecs-1-types-hierarchies-and-prefabs-9f07666a1e9d
 abstract EntityId(haxe.Int32) from Int to Int {}
 // typedef ComponentId = EntityId;
-// abstract ComponentId(Int) from Int {}
 typedef Components = Array<EntityId>;
 
 // Type flags
@@ -64,16 +61,13 @@ class Edge {
 
 @:structInit
 class Archetype {
-	static var archetypeId = 0;
 	public final type: Components;
 	public final entityIds: Array<EntityId>;
 	public final components: Array<Array<Any>>;
-	public final id = archetypeId++;
 	// public final length: Int;
-	// public final edges: Array<Edge>;
 	public final edges: Map<EntityId, Edge>;
 	public function toString() {
-		return 'Archetype [$id] { \n\ttype: $type, \n\tentityId: $entityIds, \n\tedges: $edges \n}';
+		return 'Archetype { \n\ttype: $type, \n\tentityId: $entityIds, \n\tedges: $edges \n}';
 	}
 }
 
@@ -96,7 +90,7 @@ final Faction_id: EntityId = 70;
 
 class Main {
 	static function main() {
-		final c = new Main();
+		new Main();
 	}
 
 	final entityIndex = new Map<EntityId, Record>();
@@ -160,18 +154,12 @@ class Main {
 		printEntity(Player_id + 1);
 
 		trace(getComponent(Player_id, Health_id));
-		// trace(getComponent(Player_id, Faction_id));
 		trace(getComponentsForEntity(Player_id));
 
 		trace(getEntitiesWithComponent(Health_id));
 		trace('//////////////////////////////');
-		// trace(query([Health_id]));
 		final terms = [Health_id, Position_id];
 		for (archetype in queryArchetypes(terms)) {
-			// for (entityId in archetype.entityIds) {
-			// 	printEntity(entityId);
-			// }
-
 			for (i => term in terms) {
 				trace(archetype.components[archetype.type.indexOf(term)]);
 			}
@@ -183,8 +171,6 @@ class Main {
 				component.value -= 10;
 				trace(component);
 			}
-			// trace(components[0]);
-			// trace(components[1]);
 		});
 
 		trace('//////////////////////////////3');
@@ -207,11 +193,7 @@ class Main {
 	}
 	
 	function addComponent(entity: EntityId, componentId: EntityId, componentData: Any) {
-		trace('');
 		if (!entityIndex.exists(entity)) throw 'entity $entity does not exist';
-		// if (!entityIndex.exists(componentId)) {
-		// 	entityIndex.set(componentId, [EcsComponent_id, EcsId_id]);
-		// }
 		final record = entityIndex[entity];
 		final archetype = record.archetype;
 		final type = archetype.type;
@@ -225,10 +207,8 @@ class Main {
 		destinationType.sort((x, y) -> x - y);
 		var destinationArchetype = findOrCreateArchetype(archetype, destinationType);
 
-		trace('going from archetype $type (id: ${archetype.id}) to $destinationType (id: ${destinationArchetype.id})');
-		
 		// insert entity into component array of destination
-		destinationArchetype.entityIds.push(entity); // TODO: Is this what is meant by the above comment?
+		destinationArchetype.entityIds.push(entity);
 		
 		// copy overlapping components from source to destination + insert new component
 		var index = 0;
@@ -325,22 +305,6 @@ class Main {
 		return node;
 	}
 
-	// inline function createArchetype(archetype: Archetype, addComponentId: EntityId): Archetype {
-	// 	// trace('createArchetype');
-	// 	final type = archetype.type.concat([addComponentId]);
-	// 	return {
-	// 		type: type,
-	// 		entityIds: [],
-	// 		components: [for (_ in type) []],
-	// 		edges: [
-	// 			addComponentId => {
-	// 				add: null,
-	// 				remove: archetype
-	// 			}
-	// 		], // TODO: create correct edges
-	// 	};
-	// }
-
 	function printEntity(entity: EntityId) {
 		trace('entity $entity:');
 		final record = entityIndex[entity];
@@ -387,7 +351,7 @@ class Main {
 		final archetype = record.archetype;
 		final type = archetype.type;
 		final components = [];
-		for (i => t in type) {
+		for (i => _ in type) {
 			components.push(archetype.components[i][record.row]);
 		}
 		return components;
@@ -481,7 +445,6 @@ class Main {
 			}
 		}
 		trace('componentsForTerms: $componentsForTerms');
-		// trace(componentsForTerms);
 		fn(componentsForTerms);
 	}
 
