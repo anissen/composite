@@ -181,7 +181,7 @@ class Context {
 	}
 
 	function findOrCreateArchetype(archetype: Archetype, type: Components): Archetype {
-		trace('findOrCreateArchetype(${archetype.type}, $type)');
+		// trace('findOrCreateArchetype(${archetype.type}, $type)');
 		var node = archetype;
 		var typesSoFar = [];
 		for (t in type) {
@@ -197,7 +197,7 @@ class Context {
 			}
 			// TODO: Also handle the case where we want to remove a component from an entity.
 			if (edge.add == null) {
-				trace('creating new archetype for $typesSoFar');
+				// trace('creating new archetype for $typesSoFar');
 				final newArchetype: Archetype = {
 					type: typesSoFar.copy(),
 					entityIds: [],

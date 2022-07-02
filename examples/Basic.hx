@@ -72,12 +72,6 @@ function main() {
 	trace(context.getEntitiesWithComponent(Health_id));
 	trace('//////////////////////////////');
 	final terms = [Health_id, Position_id];
-	for (archetype in context.queryArchetypes(terms)) {
-		for (i => term in terms) {
-			trace(archetype.components[archetype.type.indexOf(term)]);
-		}
-	}
-	trace('//////////////////////////////2');
 	context.query(terms, (components) -> {
 		final healthComponents: Array<Health> = components[0];
 		for (component in healthComponents) {
@@ -87,7 +81,7 @@ function main() {
 	});
 
 	trace('//////////////////////////////3');
-	// TODO: In the following list there should be no archetypes with empty `entityId` (except for `emptyArchetype`) and no two archetypes with same `type`
+	// TODO: In the following list there should be no archetypes with empty `entityId` (except for `emptyArchetype`)
 	context.printArchetypes(context.emptyArchetype);
 
 	trace('//////////////////////////////4');
