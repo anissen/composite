@@ -82,8 +82,8 @@ function main() {
 
 	trace('//////////////////////////////3');
 	// TODO: In the following list there should be no archetypes with empty `entityId` (except for `emptyArchetype`)
-	context.printArchetypes(context.emptyArchetype);
+	context.printArchetypes(context.rootArchetype);
 
 	trace('//////////////////////////////4');
-	context.printArchetypeGraph(context.emptyArchetype);
+	context.printArchetypeGraph(context.rootArchetype);
 }

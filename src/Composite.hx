@@ -63,7 +63,7 @@ class Record {
 
 class Context {
 	final entityIndex = new Map<EntityId, Record>();
-	public final emptyArchetype: Archetype = {
+	public final rootArchetype: Archetype = {
 		type: [],
 		entityIds: [],
 		components: [],
@@ -72,7 +72,7 @@ class Context {
 	};
 
 	inline public function new() {
-		final destinationArchetype = findOrCreateArchetype(emptyArchetype, [EcsComponent_id, EcsId_id]);
+		final destinationArchetype = findOrCreateArchetype([EcsComponent_id, EcsId_id]);
 		destinationArchetype.entityIds.push(EcsComponent_id);
 		destinationArchetype.components[0].push(({}: EcsComponent));
 		destinationArchetype.components[1].push(({ name: 'EcsComponent' }: EcsId));
@@ -93,7 +93,7 @@ class Context {
 	}
 
 	public function addEntity(entity: EntityId, name: String) {
-		final destinationArchetype = findOrCreateArchetype(emptyArchetype, [EcsId_id]);
+		final destinationArchetype = findOrCreateArchetype([EcsId_id]);
 		destinationArchetype.components[0].push(({ name: name }: EcsId));
 		destinationArchetype.entityIds.push(entity);
 		final record: Record = {
@@ -116,7 +116,7 @@ class Context {
 		// find destination archetype
 		final destinationType = type.concat([componentId]);
 		destinationType.sort((x, y) -> x - y);
-		var destinationArchetype = findOrCreateArchetype(archetype, destinationType);
+		var destinationArchetype = findOrCreateArchetype(destinationType);
 
 		// insert entity into component array of destination
 		destinationArchetype.entityIds.push(entity);
@@ -185,12 +185,10 @@ class Context {
 		entityIndex.set(entity, newRecord);
 	}
 
-	function findOrCreateArchetype(archetype: Archetype, type: Components): Archetype {
+	function findOrCreateArchetype(type: Components): Archetype {
 		// trace('findOrCreateArchetype(${archetype.type}, $type)');
-		var node = archetype;
-		final typesSoFar = [];
-		for (i => t in type) {
-			typesSoFar.push(t);
+		var node = rootArchetype;
+		for (t in type) {
 			if (node.type.contains(t)) continue;
 			var edge = node.edges[t];
 			if (edge == null) {
@@ -283,7 +281,7 @@ class Context {
 			return Lambda.flatten(cache.map(archetype -> archetype.entityIds));
 		}
 		
-		final next: Array<Null<Archetype>> = [emptyArchetype];
+		final next: Array<Null<Archetype>> = [rootArchetype];
 		var archetypes: Array<Archetype> = [];
 		var entities: Array<EntityId> = [];
 		while (next.length != 0) {
@@ -304,7 +302,7 @@ class Context {
 	}
 
 	function getArchetypesWithComponent(componentId: EntityId): Array<Archetype> {
-		final next: Array<Null<Archetype>> = [emptyArchetype];
+		final next: Array<Null<Archetype>> = [rootArchetype];
 		var archetypes: Array<Archetype> = [];
 		while (next.length != 0) {
 			final node = next.pop();
