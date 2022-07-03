@@ -34,7 +34,7 @@ class Player {}
 final Health_id = 10;
 final Position_id = 20;
 final Player_id = 30;
-final Faction_id: EntityId = 70;
+// final Faction_id: EntityId = 70;
 
 function main() {
 	final context = new Context();
@@ -42,16 +42,16 @@ function main() {
 	context.addComponent(Player_id, Health_id, ({ value: 100 }: Health));
 	context.addComponent(Player_id, Position_id, ({ x: 3, y: 7 }: Position));
 
-	final x = (ChildOf | Faction_id);
-	trace(x);
-	context.addComponent(Player_id, x, ({ color: 'red' }: Faction));
+	// final x = (ChildOf | Faction_id);
+	// trace(x);
+	// context.addComponent(Player_id, x, ({ color: 'red' }: Faction));
 
-	trace('player is child of faction?');
-	trace((x & ChildOf > 0) ? 'yes' : 'no');
+	// trace('player is child of faction?');
+	// trace((x & ChildOf > 0) ? 'yes' : 'no');
 
 	context.addEntity(Player_id + 1, 'Player 2');
-	context.addComponent(Player_id + 1, Health_id, ({ value: 83 }: Health));
 	context.addComponent(Player_id + 1, Position_id, ({ x: 2, y: 2 }: Position));
+	context.addComponent(Player_id + 1, Health_id, ({ value: 83 }: Health));
 
 	context.addEntity(Player_id + 2, 'Player 3');
 	context.addComponent(Player_id + 2, Health_id, ({ value: 75 }: Health));

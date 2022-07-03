@@ -40,6 +40,8 @@ class Edge {
 
 @:structInit
 class Archetype {
+	static var archetypeId: Int = 0;
+	public final id: Int = archetypeId++;
 	public final type: Components;
 	public final entityIds: Array<EntityId>;
 	public final components: Array<Array<Any>>;
@@ -128,6 +130,9 @@ class Context {
 				destinationArchetype.components[i].push(componentData);
 				newComponentInserted = true;
 				index++;
+				if (index >= destinationArchetype.components.length) {
+					break;
+				}
 			}
 			destinationArchetype.components[index].push(archetype.components[i][record.row]);
 			index++;
@@ -146,7 +151,7 @@ class Context {
 			// 	if (edge.add != null) {
 			// 		final adjacentAdd = edge.add;
 			// 		for (t2 => adjacentEdge in adjacentAdd.edges) {
-			// 			if (adjacentEdge.remove != null) trace('${adjacentEdge.remove.id} == ${archetype.id}');
+			// 			// if (adjacentEdge.remove != null) trace('${adjacentEdge.remove.id} == ${archetype.id}');
 			// 			if (t2 == t && adjacentEdge.remove == archetype) {
 			// 				trace('removing `remove` edge: ' + t + ' -> ' + t2);
 			// 				trace(adjacentEdge.remove);
@@ -157,7 +162,7 @@ class Context {
 			// 	if (edge.remove != null) {
 			// 		final adjacentRemove = edge.remove;
 			// 		for (t2 => adjacentEdge in adjacentRemove.edges) {
-			// 			if (adjacentEdge.add != null) trace('${adjacentEdge.add.id} == ${archetype.id}');
+			// 			// if (adjacentEdge.add != null) trace('${adjacentEdge.add.id} == ${archetype.id}');
 			// 			if (t2 == t && adjacentEdge.add == archetype) {
 			// 				trace('removing `add` edge: ' + t + ' -> ' + t2);
 			// 				trace(adjacentEdge.add);
@@ -183,10 +188,10 @@ class Context {
 	function findOrCreateArchetype(archetype: Archetype, type: Components): Archetype {
 		// trace('findOrCreateArchetype(${archetype.type}, $type)');
 		var node = archetype;
-		var typesSoFar = [];
-		for (t in type) {
+		final typesSoFar = [];
+		for (i => t in type) {
 			typesSoFar.push(t);
-			if (archetype.type.contains(t)) continue;
+			if (node.type.contains(t)) continue;
 			var edge = node.edges[t];
 			if (edge == null) {
 				edge = {
@@ -198,10 +203,12 @@ class Context {
 			// TODO: Also handle the case where we want to remove a component from an entity.
 			if (edge.add == null) {
 				// trace('creating new archetype for $typesSoFar');
+				final newType = node.type.concat([t]);
+				newType.sort((x, y) -> x - y);
 				final newArchetype: Archetype = {
-					type: typesSoFar.copy(),
+					type: newType,
 					entityIds: [],
-					components: [for (_ in typesSoFar) []],
+					components: [for (_ in newType) []],
 					edges: [t => {
 						add: null,
 						remove: node,
@@ -209,6 +216,7 @@ class Context {
 				};
 				edge.add = newArchetype;
 			}
+			// trace('${node.type} => ${edge.add.type}');
 			node = edge.add; // move to the node that contains the component `t`
 		}
 		return node;
@@ -232,14 +240,14 @@ class Context {
 	}
 
 	public function printArchetypeGraph(node: Archetype) {
-		Sys.println('"${node.type}";');
+		Sys.println('"${node.type}${node.id}" [label="${node.type} (entities: ${node.entityIds.length})"];');
 		for (t => edge in node.edges) {
 			if (edge != null && edge.add != null) {
-				Sys.println('"${node.type}" -> "${edge.add.type}" [label="add ${t}"];');
+				Sys.println('"${node.type}${node.id}" -> "${edge.add.type}${edge.add.id}" [label="add ${t}"];');
 				printArchetypeGraph(edge.add);
 			}
 			if (edge != null && edge.remove != null) {
-				Sys.println('"${node.type}" -> "${edge.remove.type}" [label="remove ${t}"];');
+				Sys.println('"${node.type}${node.id}" -> "${edge.remove.type}${edge.remove.id}" [label="remove ${t}"];');
 			}
 		}
 	}
