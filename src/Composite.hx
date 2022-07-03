@@ -48,7 +48,8 @@ class Archetype {
 	// public final length: Int;
 	public final edges: Map<EntityId, Edge>;
 	public function toString() {
-		return 'Archetype { \n\ttype: $type, \n\tentityId: $entityIds, \n\tedges: $edges \n}';
+		final edgesString = [for (k => v in edges) '$k\t=> $v'].join("\n\t\t");
+		return 'Archetype { \n\ttype: $type, \n\tentityId: $entityIds, \n\tedges: \n\t\t$edgesString} \n}';
 	}
 }
 
@@ -238,14 +239,17 @@ class Context {
 	}
 
 	public function printArchetypeGraph(node: Archetype) {
-		Sys.println('"${node.type}${node.id}" [label="${node.type} (entities: ${node.entityIds.length})"];');
+		function println(s: String) {
+			#if sys Sys.println(s); #else trace(s); #end
+		}
+		println('"${node.type}${node.id}" [label="${node.type} (entities: ${node.entityIds.length})"];');
 		for (t => edge in node.edges) {
 			if (edge != null && edge.add != null) {
-				Sys.println('"${node.type}${node.id}" -> "${edge.add.type}${edge.add.id}" [label="add ${t}"];');
+				println('"${node.type}${node.id}" -> "${edge.add.type}${edge.add.id}" [label="add ${t}"];');
 				printArchetypeGraph(edge.add);
 			}
 			if (edge != null && edge.remove != null) {
-				Sys.println('"${node.type}${node.id}" -> "${edge.remove.type}${edge.remove.id}" [label="remove ${t}"];');
+				println('"${node.type}${node.id}" -> "${edge.remove.type}${edge.remove.id}" [label="remove ${t}"];');
 			}
 		}
 	}
