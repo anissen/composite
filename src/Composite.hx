@@ -92,7 +92,7 @@ class Context {
 		entityIndex.set(EcsId_id, idRecord);
 	}
 
-	public function addEntity(entity: EntityId, name: String) {
+	public function addEntity(entity: EntityId, name: String) { // TODO: Should this be entitled `createEntity` instead?
 		final destinationArchetype = findOrCreateArchetype([EcsId_id]);
 		destinationArchetype.components[0].push(({ name: name }: EcsId));
 		destinationArchetype.entityIds.push(entity);
@@ -144,7 +144,7 @@ class Context {
 		// remove entity from component array of source
 		archetype.entityIds.splice(record.row, 1); // TODO: We should probably swap the old entity down to the end of the `active` part of the array instead
 		
-		// Remove source archetype if it is now empty
+		// Remove source archetype if it is now empty and is a leaf in the graph
 		if (archetype.entityIds.length == 0) {
 			// for (t => edge in archetype.edges) {
 			// 	// TODO: Remove archetype from the edges of adjacent archetypes
@@ -272,35 +272,6 @@ class Context {
 		return components;
 	}
 
-	static final componentLookupCache: Map<EntityId, Array<Archetype>> = [];
-	public function getEntitiesWithComponent(componentId: EntityId): Array<EntityId> {
-		// TODO: Invalidate (some) caches when new archetypes are created
-		final cache = componentLookupCache[componentId];
-		if (cache != null) {
-			trace('cache hit');
-			return Lambda.flatten(cache.map(archetype -> archetype.entityIds));
-		}
-		
-		final next: Array<Null<Archetype>> = [rootArchetype];
-		var archetypes: Array<Archetype> = [];
-		var entities: Array<EntityId> = [];
-		while (next.length != 0) {
-			final node = next.pop();
-			if (node.type.contains(componentId)) {
-				archetypes.push(node);
-				entities = entities.concat(node.entityIds);
-			}
-			for (edge in node.edges) {
-				if (edge != null && edge.add != null) {
-					next.push(edge.add);
-				}
-			}
-		}
-		trace('cache miss');
-		componentLookupCache[componentId] = archetypes;
-		return entities;
-	}
-
 	function getArchetypesWithComponent(componentId: EntityId): Array<Archetype> {
 		final next: Array<Null<Archetype>> = [rootArchetype];
 		var archetypes: Array<Archetype> = [];
@@ -351,7 +322,7 @@ class Context {
 	}
 
 	public function query(terms: Array<EntityId>, fn: (components: Array<Any>) -> Void) {
-		final componentsForTerms = [ for (term in terms) [] ];
+		final componentsForTerms = [ for (_ in terms) [] ];
 		final archetypes = queryArchetypes(terms);
 
 		for (i => term in terms) {
@@ -361,6 +332,11 @@ class Context {
 		}
 		trace('componentsForTerms: $componentsForTerms');
 		fn(componentsForTerms);
+	}
+
+	public function getEntitiesWithComponents(terms: Array<EntityId>): Array<EntityId> {
+		final archetypes = queryArchetypes(terms);
+		return Lambda.flatten([ for (node in archetypes) { node.entityIds; } ]);
 	}
 
 	// inline function hasComponent(entity: EntityId, componentId: EntityId) {

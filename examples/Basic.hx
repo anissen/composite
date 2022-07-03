@@ -60,6 +60,7 @@ function main() {
 
 	context.addEntity(45, 'Blah?');
 	context.addComponent(45, Position_id, ({ x: 1, y: 7 }: Position));
+	// context.removeComponent(45, Position_id);
 	// addComponent(45, Health_id, ({ value: 76 }: Health));
 
 	// trace(entityIndex);
@@ -68,8 +69,8 @@ function main() {
 
 	trace(context.getComponent(Player_id, Health_id));
 	trace(context.getComponentsForEntity(Player_id));
-
-	trace(context.getEntitiesWithComponent(Health_id));
+	trace(context.getEntitiesWithComponents([Health_id]));
+	
 	trace('//////////////////////////////');
 	final terms = [Health_id, Position_id];
 	context.query(terms, (components) -> {
