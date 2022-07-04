@@ -7,6 +7,8 @@ abstract EntityId(haxe.Int32) from Int to Int {}
 // typedef ComponentId = EntityId;
 typedef Components = Array<EntityId>;
 
+typedef Expression = Array<EntityId>;
+
 // Type flags
 final InstanceOf: EntityId = 1 << 29;
 final ChildOf: EntityId = 2 << 28;
@@ -64,6 +66,7 @@ class Record {
 
 class Context {
 	final entityIndex = new Map<EntityId, Record>();
+	final systems: Array<System> = [];
 	public final rootArchetype: Archetype = {
 		type: [],
 		entityIds: [],
@@ -352,4 +355,23 @@ class Context {
 	// 	}
 	// 	return false;
 	// }
+
+
+	
+	public function addSystem(expression: Expression, fn: (components: Array<Any>) -> Void, /* phase: OnUpdate, */ name: String) {
+		systems.push({ expression: expression, fn: fn, name: name});
+	}
+
+	public function step() {
+		for (system in systems) {
+			query(system.expression, system.fn); // TODO: Query should be cached
+		}
+	}
+}
+
+@:structInit
+class System {
+	public final expression: Expression;
+	public final fn: (components: Array<Any>) -> Void;
+	public final name: String;
 }
