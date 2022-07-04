@@ -65,6 +65,7 @@ class Record {
 }
 
 class Context {
+	var nextEntityId = 3;
 	final entityIndex = new Map<EntityId, Record>();
 	final systems: Array<System> = [];
 	public final rootArchetype: Archetype = {
@@ -96,15 +97,19 @@ class Context {
 		entityIndex.set(EcsId_id, idRecord);
 	}
 
-	public function addEntity(entity: EntityId, name: String) { // TODO: Should this be entitled `createEntity` instead?
+	public function createEntity(name: String): EntityId {
+		final entityId = nextEntityId++;
+
 		final destinationArchetype = findOrCreateArchetype([EcsId_id]);
 		destinationArchetype.components[0].push(({ name: name }: EcsId));
-		destinationArchetype.entityIds.push(entity);
+		destinationArchetype.entityIds.push(entityId);
 		final record: Record = {
 			archetype: destinationArchetype,
 			row: destinationArchetype.entityIds.length - 1,
 		};
-		entityIndex.set(entity, record);
+		entityIndex.set(entityId, record);
+
+		return entityId;
 	}
 	
 	public function addComponent(entity: EntityId, componentId: EntityId, componentData: Any) {
@@ -130,7 +135,7 @@ class Context {
 		var newComponentInserted = false;
 		for (i => t in type) {
 			if (!newComponentInserted && t != destinationArchetype.type[i]) {
-				trace(componentData);
+				// trace(componentData);
 				destinationArchetype.components[i].push(componentData);
 				newComponentInserted = true;
 				index++;
@@ -337,7 +342,7 @@ class Context {
 				componentsForTerms[i] = componentsForTerms[i].concat(archetype.components[archetype.type.indexOf(term)]);
 			}
 		}
-		trace('componentsForTerms: $componentsForTerms');
+		// trace('componentsForTerms: $componentsForTerms');
 		fn(componentsForTerms);
 	}
 

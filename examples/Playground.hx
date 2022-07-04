@@ -29,14 +29,13 @@ class Faction {
 
 final Health_id = 10;
 final Position_id = 20;
-final Player_id = 30;
 // final Faction_id: EntityId = 70;
 
 function main() {
 	final context = new Context();
-	context.addEntity(Player_id, 'Player');
-	context.addComponent(Player_id, Health_id, ({ value: 100 }: Health));
-	context.addComponent(Player_id, Position_id, ({ x: 3, y: 7 }: Position));
+	final player1 = context.createEntity('Player');
+	context.addComponent(player1, Health_id, ({ value: 100 }: Health));
+	context.addComponent(player1, Position_id, ({ x: 3, y: 7 }: Position));
 
 	// final x = (ChildOf | Faction_id);
 	// trace(x);
@@ -45,26 +44,22 @@ function main() {
 	// trace('player is child of faction?');
 	// trace((x & ChildOf > 0) ? 'yes' : 'no');
 
-	context.addEntity(Player_id + 1, 'Player 2');
-	context.addComponent(Player_id + 1, Position_id, ({ x: 2, y: 2 }: Position));
-	context.addComponent(Player_id + 1, Health_id, ({ value: 83 }: Health));
+	final player2 = context.createEntity('Player 2');
+	context.addComponent(player2, Position_id, ({ x: 2, y: 2 }: Position));
+	context.addComponent(player2, Health_id, ({ value: 83 }: Health));
 
-	context.addEntity(Player_id + 2, 'Player 3');
-	context.addComponent(Player_id + 2, Health_id, ({ value: 75 }: Health));
-	context.addComponent(Player_id + 2, Position_id, ({ x: 3, y: 3 }: Position));
+	final player3 = context.createEntity('Player 3');
+	context.addComponent(player3, Health_id, ({ value: 75 }: Health));
+	context.addComponent(player3, Position_id, ({ x: 3, y: 3 }: Position));
 
+	final blah = context.createEntity('Blah?');
+	context.addComponent(blah, Position_id, ({ x: 1, y: 7 }: Position));
 
-	context.addEntity(45, 'Blah?');
-	context.addComponent(45, Position_id, ({ x: 1, y: 7 }: Position));
-	// context.removeComponent(45, Position_id);
-	// addComponent(45, Health_id, ({ value: 76 }: Health));
+	context.printEntity(player1);
+	context.printEntity(player2);
 
-	// trace(entityIndex);
-	context.printEntity(Player_id);
-	context.printEntity(Player_id + 1);
-
-	trace(context.getComponent(Player_id, Health_id));
-	trace(context.getComponentsForEntity(Player_id));
+	trace(context.getComponent(player1, Health_id));
+	trace(context.getComponentsForEntity(player1));
 	trace(context.getEntitiesWithComponents([Health_id]));
 	
 	trace('//////////////////////////////');
