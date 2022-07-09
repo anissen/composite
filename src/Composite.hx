@@ -13,18 +13,24 @@ typedef Expression = Array<EntityId>;
 final InstanceOf: EntityId = 1 << 29;
 final ChildOf: EntityId = 2 << 28;
 
-final EcsComponent_id = 1;
-final EcsId_id = 2;
+// final EcsComponent_id = 1;
+// final EcsId_id = 2;
+
+@:autoBuild(macros.Component.buildComponent())
+interface Component {
+	function getID(): Int;
+}
+
 
 @:structInit
-class EcsComponent {
+class EcsComponent implements Component {
 	public function toString() {
 		return 'EcsComponent';
 	}
 }
 
 @:structInit
-class EcsId {
+class EcsId implements Component {
 	public final name: String;
 	public function toString() {
 		return 'EcsId { name: "$name" }';
@@ -75,32 +81,33 @@ class Context {
 		// length: 0,
 		edges: [],
 	};
+	
 
 	inline public function new() {
-		final destinationArchetype = findOrCreateArchetype([EcsComponent_id, EcsId_id]);
-		destinationArchetype.entityIds.push(EcsComponent_id);
+		final destinationArchetype = findOrCreateArchetype([EcsComponent.ID, EcsId.ID]);
+		destinationArchetype.entityIds.push(EcsComponent.ID);
 		destinationArchetype.components[0].push(({}: EcsComponent));
 		destinationArchetype.components[1].push(({ name: 'EcsComponent' }: EcsId));
 		final componentRecord: Record = {
 			archetype: destinationArchetype,
 			row: destinationArchetype.entityIds.length - 1,
 		};	
-		entityIndex.set(EcsComponent_id, componentRecord);
+		entityIndex.set(EcsComponent.ID, componentRecord);
 		
-		destinationArchetype.entityIds.push(EcsId_id);
+		destinationArchetype.entityIds.push(EcsId.ID);
 		destinationArchetype.components[0].push(({}: EcsComponent));
 		destinationArchetype.components[1].push(({ name: 'EcsId' }: EcsId));
 		final idRecord: Record = {
 			archetype: destinationArchetype,
 			row: destinationArchetype.entityIds.length - 1,
 		};	
-		entityIndex.set(EcsId_id, idRecord);
+		entityIndex.set(EcsId.ID, idRecord);
 	}
 
 	public function createEntity(name: String): EntityId {
 		final entityId = nextEntityId++;
 
-		final destinationArchetype = findOrCreateArchetype([EcsId_id]);
+		final destinationArchetype = findOrCreateArchetype([EcsId.ID]);
 		destinationArchetype.components[0].push(({ name: name }: EcsId));
 		destinationArchetype.entityIds.push(entityId);
 		final record: Record = {
@@ -112,11 +119,12 @@ class Context {
 		return entityId;
 	}
 	
-	public function addComponent(entity: EntityId, componentId: EntityId, componentData: Any) {
+	public function addComponent(entity: EntityId, componentData: Component) {
 		if (!entityIndex.exists(entity)) throw 'entity $entity does not exist';
 		final record = entityIndex[entity];
 		final archetype = record.archetype;
 		final type = archetype.type;
+		final componentId = componentData.getID();
 		if (type.contains(componentId)) {
 			trace('component $componentId already exists on entity $entity');
 			return;
