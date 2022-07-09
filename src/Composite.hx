@@ -22,12 +22,12 @@ interface Component {
 }
 
 
-@:structInit
-class EcsComponent implements Component {
-	public function toString() {
-		return 'EcsComponent';
-	}
-}
+// @:structInit
+// class EcsComponent implements Component {
+// 	public function toString() {
+// 		return 'EcsComponent';
+// 	}
+// }
 
 @:structInit
 class EcsId implements Component {
@@ -84,24 +84,11 @@ class Context {
 	
 
 	inline public function new() {
-		final destinationArchetype = findOrCreateArchetype([EcsComponent.ID, EcsId.ID]);
-		destinationArchetype.entityIds.push(EcsComponent.ID);
-		destinationArchetype.components[0].push(({}: EcsComponent));
-		destinationArchetype.components[1].push(({ name: 'EcsComponent' }: EcsId));
-		final componentRecord: Record = {
-			archetype: destinationArchetype,
-			row: destinationArchetype.entityIds.length - 1,
-		};	
-		entityIndex.set(EcsComponent.ID, componentRecord);
+		// final ecsComponent = createEntity('EcsComponent');
+		// addComponent(ecsComponent, ({}: EcsComponent));
 		
-		destinationArchetype.entityIds.push(EcsId.ID);
-		destinationArchetype.components[0].push(({}: EcsComponent));
-		destinationArchetype.components[1].push(({ name: 'EcsId' }: EcsId));
-		final idRecord: Record = {
-			archetype: destinationArchetype,
-			row: destinationArchetype.entityIds.length - 1,
-		};	
-		entityIndex.set(EcsId.ID, idRecord);
+		// final ecsId = createEntity('EcsId');
+		// addComponent(ecsId, ({}: EcsComponent));
 	}
 
 	public function createEntity(name: String): EntityId {
