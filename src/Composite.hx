@@ -17,10 +17,9 @@ final ChildOf: EntityId = 2 << 28;
 // final EcsId_id = 2;
 
 @:autoBuild(macros.Component.buildComponent())
-interface Component {
+extern interface Component {
 	function getID(): Int;
 }
-
 
 // @:structInit
 // class EcsComponent implements Component {
@@ -355,12 +354,14 @@ class Context {
 	// 	}
 	// 	return false;
 	// }
-
-
 	
 	public function addSystem(expression: Expression, fn: (components: Array<Any>) -> Void, /* phase: OnUpdate, */ name: String) {
 		systems.push({ expression: expression, fn: fn, name: name});
 	}
+
+	// public function addSystemEx<T:{final ID: Int;}>(expression: Array<T>, fn: (components: Array<Any>) -> Void) {
+	// 	systems.push({ expression: expression.map(c -> c.ID), fn: fn, name: ''});
+	// }
 
 	public function step() {
 		for (system in systems) {

@@ -16,12 +16,9 @@ final class Velocity implements Component {
 	public var x: Float;
 	public var y: Float;
 	public function toString() {
-		return 'Position { x: $x, y: $y }';
+		return 'Velocity { x: $x, y: $y }';
 	}
 }
-
-final Velocity_id = 10;
-final Position_id = 20;
 
 function main() {
 	final context = new Context();
@@ -45,6 +42,10 @@ function main() {
 		position.y += velocity.y;
 	});
 	*/
+
+	// context.addSystemEx([Velocity], (components) -> {
+	// 	trace(components);
+	// });
 
 	context.addSystem([Position.ID, Velocity.ID], (components) -> {
 		final position: Array<Position> = components[0];
