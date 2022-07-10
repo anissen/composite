@@ -7,7 +7,7 @@ abstract EntityId(haxe.Int32) from Int to Int {}
 // typedef ComponentId = EntityId;
 typedef Components = Array<EntityId>;
 
-typedef Expression = Array<EntityId>;
+// typedef Expression = Array<EntityId>;
 
 // Type flags
 final InstanceOf: EntityId = 1 << 29;
@@ -68,6 +68,33 @@ class Record {
 		return 'Record { archetype: $archetype, row: $row }';
 	}
 }
+
+/*
+See: https://flecs.docsforge.com/master/query-manual/#query-concepts
+Health, Position => Health AND Position
+Health, !Position => Health AND (NOT Position)
+Health or Position => Health OR Position
+Health, (Position or Color) => Health AND (Position OR Color)
+
+Health, Changed(Position)
+Health, Added(Position)
+*/
+
+enum Expression {
+	Include(componentId: EntityId); // 'and'
+	Exclude(componentId: EntityId); // 'not'
+	// And(expression: Expression);
+	// Or(expression: Expression);
+	Group(expressions: Array<Expression>);
+	// Added(componentId: EntityId);
+	// Changed(componentId: EntityId);
+	// Removed(componentId: EntityId);
+}
+
+typedef ParsedExpression = {
+	var includes: Array<EntityId>;
+	var excludes: Array<EntityId>;
+};
 
 class Context {
 	var nextEntityId = 3;
@@ -296,7 +323,7 @@ class Context {
 	}
 
 	// TODO: Make proper terms (e.g. Component, !Component, OR, ...)
-	public function queryArchetypes(terms: Array<EntityId>): Array<Archetype> {
+	public function queryArchetypes(includes: Array<EntityId>, excludes: Array<EntityId>): Array<Archetype> {
 		// Pseudo code (see https://flecs.docsforge.com/master/query-manual/#query-kinds):
 		// Archetype archetypes[] = filter.get_archetypes_for_first_term();
 		// for archetype in archetypes:
@@ -307,31 +334,59 @@ class Context {
 		// 				break;
 		// 		if match:
 		// 			yield archetype;
-		if (terms.length == 0) return [];
-		final firstTerm = terms[0];
+		if (includes.length == 0) return [];
+		final firstTerm = includes[0];
 		final archetypes = [];
 		final archetypeProspects = getArchetypesWithComponent(firstTerm);
 		// TODO: Also find the component arrays here???
 		for (archetype in archetypeProspects) {
 			var match = true;
-			for (i in 1...terms.length) {
-				if (!archetype.type.contains(terms[i])) {
+			for (i in 1...includes.length) {
+				if (!archetype.type.contains(includes[i])) {
 					match = false;
 					break;
 				}
 			}
-			if (match) {
-				archetypes.push(archetype);
+			if (!match) continue;
+
+			var disqualified = false;
+			for (exclude in excludes) {
+				if (archetype.type.contains(exclude)) {
+					disqualified = true;
+					break;
+				}
 			}
+			if (disqualified) continue;
+
+			archetypes.push(archetype);
 		}
 		return archetypes;
 	}
 
-	public function query(terms: Array<EntityId>, fn: (components: Array<Any>) -> Void) {
-		final componentsForTerms = [ for (_ in terms) [] ];
-		final archetypes = queryArchetypes(terms);
+	function parseExpression(expression: Expression): ParsedExpression {
+		var result: ParsedExpression = {
+			includes: [],
+			excludes: [],
+		};
+		switch expression {
+			case Include(t): result.includes.push(t);
+			case Exclude(t): result.excludes.push(t);
+			case Group(exps):
+				for (e in exps) {
+					final tmp = parseExpression(e);
+					result.includes = result.includes.concat(tmp.includes);
+					result.excludes = result.excludes.concat(tmp.excludes);
+				}
+		}
+		return result;
+	}
 
-		for (i => term in terms) {
+	public function query(expression: Expression, fn: (components: Array<Any>) -> Void) {
+		final parsed = parseExpression(expression);
+		final componentsForTerms = [ for (_ in parsed.includes) [] ];
+		final archetypes = queryArchetypes(parsed.includes, parsed.excludes);
+
+		for (i => term in parsed.includes) {
 			for (archetype in archetypes) {
 				componentsForTerms[i] = componentsForTerms[i].concat(archetype.components[archetype.type.indexOf(term)]);
 			}
@@ -340,8 +395,9 @@ class Context {
 		fn(componentsForTerms);
 	}
 
-	public function getEntitiesWithComponents(terms: Array<EntityId>): Array<EntityId> {
-		final archetypes = queryArchetypes(terms);
+	public function getEntitiesWithComponents(expression: Expression): Array<EntityId> {
+		final parsed = parseExpression(expression);
+		final archetypes = queryArchetypes(parsed.includes, parsed.excludes);
 		return Lambda.flatten([ for (node in archetypes) { node.entityIds; } ]);
 	}
 

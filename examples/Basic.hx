@@ -47,7 +47,7 @@ function main() {
 	// 	trace(components);
 	// });
 
-	context.addSystem([Position.ID, Velocity.ID], (components) -> {
+	context.addSystem(Group([Include(Position.ID), Include(Velocity.ID)]), (components) -> {
 		final position: Array<Position> = components[0];
 		final velocity: Array<Velocity> = components[1];
 		for (i in 0...position.length) {
@@ -56,7 +56,7 @@ function main() {
 		}
 	}, 'MoveSystem');
 
-	context.query([Position.ID], (components) -> {
+	context.query(Include(Position.ID), (components) -> {
 		final position: Array<Position> = components[0];
 		for (pos in position) {
 			trace(pos);
@@ -67,7 +67,7 @@ function main() {
 
 	trace('----------------------------------------');
 
-	context.query([Position.ID], (components) -> {
+	context.query(Group([Include(Position.ID), Exclude(Velocity.ID)]), (components) -> {
 		final position: Array<Position> = components[0];
 		for (pos in position) {
 			trace(pos);

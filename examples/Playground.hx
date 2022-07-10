@@ -60,11 +60,11 @@ function main() {
 
 	trace(context.getComponent(player1, Health_id));
 	trace(context.getComponentsForEntity(player1));
-	trace(context.getEntitiesWithComponents([Health_id]));
+	trace(context.getEntitiesWithComponents(Include(Health_id)));
 	
 	trace('//////////////////////////////');
-	final terms = [Health_id, Position_id];
-	context.query(terms, (components) -> {
+	final expression = Group([Include(Health_id), Include(Position_id)]);
+	context.query(expression, (components) -> {
 		final healthComponents: Array<Health> = components[0];
 		for (component in healthComponents) {
 			component.value -= 10;
