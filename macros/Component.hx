@@ -4,7 +4,7 @@ package macros;
 
 import haxe.macro.Context;
 
-var componentID = 0;
+@:persistent var componentID = 0;
 
 function buildComponent() {
     final componentTypeId = componentID++;
