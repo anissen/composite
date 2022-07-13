@@ -1,5 +1,10 @@
 -cp src
 -cp examples
 -D analyzer-optimize
+--dce full
 --debug
---run examples.Basic
+# --run examples.Basic
+# --run examples.Playground
+
+--main examples.Canvas
+--js examples/canvas.js

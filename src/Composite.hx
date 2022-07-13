@@ -334,6 +334,7 @@ class Context {
 		// 				break;
 		// 		if match:
 		// 			yield archetype;
+		if (includes.length == 0 && excludes.length != 0) throw 'Cannot query with only exclude terms';
 		if (includes.length == 0) return [];
 		final firstTerm = includes[0];
 		final archetypes = [];
