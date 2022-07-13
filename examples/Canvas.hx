@@ -23,6 +23,23 @@ final class Velocity implements Composite.Component {
 	}
 }
 
+@:structInit
+final class CircleRendering implements Composite.Component {
+	public var radius: Float;
+	public function toString() {
+		return 'CircleRendering { radius: $radius }';
+	}
+}
+
+@:structInit
+final class SquareRendering implements Composite.Component {
+	public var size: Float;
+	public var rotation: Float;
+	public function toString() {
+		return 'SquareRendering { size: $size, rotation: $rotation }';
+	}
+}
+
 inline function main() {
     final canvas = document.createCanvasElement();
     canvas.width = 800;
@@ -47,9 +64,15 @@ inline function main() {
 
     canvas.onclick = (event -> {
         final e = context.createEntity('Entity');
-        final speed = 2.0;
+        final square = Math.random() < 0.5;
+        final speed = square ? 1.0 : 3.0;
         context.addComponent(e, ({ x: -speed + 2 * speed * Math.random(), y: -speed + 2 * speed * Math.random() }: Velocity));
         context.addComponent(e, ({ x: event.clientX, y: event.clientY }: Position));
+        if (square) {
+            context.addComponent(e, ({ size: 5 + Math.random() * 5, rotation: Math.PI * 2 * Math.random() }: SquareRendering));
+        } else {
+            context.addComponent(e, ({ radius: 5 + Math.random() * 5 }: CircleRendering));
+        }
     });
 
     context.addSystem(Group([Include(Position.ID), Include(Velocity.ID)]), (components) -> {
@@ -67,19 +90,39 @@ inline function main() {
 		}
 	}, 'MoveSystem');
     
-    context.addSystem(Include(Position.ID), (components) -> {
-        // ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-        ctx.fillStyle = 'rgb(75, 220, 255)';
-        ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-    
+    context.addSystem(Group([Include(Position.ID), Include(CircleRendering.ID)]), (components) -> {
         ctx.fillStyle = 'rgb(0, 100, 255)';
 
 		final position: Array<Position> = components[0];
-        final radius = 5.0;
-		for (pos in position) {
+		final circle: Array<CircleRendering> = components[1];
+		for (i in 0...position.length) {
+            final pos = position[i];
+            final radius = circle[i].radius;
             ctx.beginPath();
             ctx.arc(pos.x, pos.y, radius, 0, Math.PI * 2);
             ctx.fill();
+		}
+	}, 'RenderSystem');
+    
+    context.addSystem(Group([Include(Position.ID), Include(SquareRendering.ID)]), (components) -> {
+        ctx.fillStyle = 'rgb(100, 0, 255)';
+
+		final position: Array<Position> = components[0];
+		final square: Array<SquareRendering> = components[1];
+		for (i in 0...position.length) {
+            final pos = position[i];
+            final size = square[i].size;
+            final rotation = square[i].rotation;
+            ctx.save();
+            ctx.translate(pos.x + size / 2, pos.y + size / 2);
+            ctx.rotate(rotation);
+            ctx.translate(-(pos.x + size / 2), -(pos.y + size / 2));
+
+            ctx.beginPath();
+            ctx.rect(pos.x, pos.y, size, size);
+            ctx.fill();
+
+            ctx.restore();
 		}
 	}, 'RenderSystem');
 }
@@ -90,6 +133,9 @@ inline function init() {
 }
 
 function draw(ctx: CanvasRenderingContext2D) {
+    ctx.fillStyle = 'rgb(75, 220, 255)';
+    ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+
     // ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
     // ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
     
