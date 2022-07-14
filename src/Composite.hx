@@ -243,6 +243,7 @@ class Context {
 					}],
 				};
 				edge.add = newArchetype;
+				queryArchetypeCache.clear(); // clear the archetype cache
 			}
 			// trace('${node.type} => ${edge.add.type}');
 			node = edge.add; // move to the node that contains the component `t`
@@ -323,7 +324,13 @@ class Context {
 	}
 
 	// TODO: Make proper terms (e.g. Component, !Component, OR, ...)
+	final queryArchetypeCache: Map<String, Array<Archetype>> = new Map();
 	public function queryArchetypes(includes: Array<EntityId>, excludes: Array<EntityId>): Array<Archetype> {
+		final queryKey = includes.join(',') + '-' + excludes.join(',');
+		if (queryArchetypeCache.exists(queryKey)) {
+			return queryArchetypeCache[queryKey];
+		}
+
 		// Pseudo code (see https://flecs.docsforge.com/master/query-manual/#query-kinds):
 		// Archetype archetypes[] = filter.get_archetypes_for_first_term();
 		// for archetype in archetypes:
@@ -361,6 +368,7 @@ class Context {
 
 			archetypes.push(archetype);
 		}
+		queryArchetypeCache[queryKey] = archetypes;
 		return archetypes;
 	}
 
