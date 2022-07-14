@@ -397,6 +397,7 @@ class Context {
 
 		for (i => term in parsed.includes) {
 			for (archetype in archetypes) {
+				// TODO: Could we avoid creating and copying arrays here? Maybe allow `fn` to index into the component arrays of the different archetypes?
 				componentsForTerms[i] = componentsForTerms[i].concat(archetype.components[archetype.type.indexOf(term)]);
 			}
 		}
@@ -420,19 +421,19 @@ class Context {
 	// 	return false;
 	// }
 	
-	public function addSystem(expression: Expression, fn: (components: Array<Any>) -> Void, /* phase: OnUpdate, */ name: String) {
-		systems.push({ expression: expression, fn: fn, name: name});
-	}
+	// public function addSystem(expression: Expression, fn: (components: Array<Any>) -> Void, /* phase: OnUpdate, */ name: String) {
+	// 	systems.push({ expression: expression, fn: fn, name: name});
+	// }
 
 	// public function addSystemEx<T:{final ID: Int;}>(expression: Array<T>, fn: (components: Array<Any>) -> Void) {
 	// 	systems.push({ expression: expression.map(c -> c.ID), fn: fn, name: ''});
 	// }
 
-	public function step() {
-		for (system in systems) {
-			query(system.expression, system.fn); // TODO: Query should be cached
-		}
-	}
+	// public function step() {
+	// 	for (system in systems) {
+	// 		query(system.expression, system.fn); // TODO: Query should be cached
+	// 	}
+	// }
 }
 
 @:structInit
