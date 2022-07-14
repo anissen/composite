@@ -52,9 +52,9 @@ inline function main() {
 
     final ctx = canvas.getContext2d();
     function animate(time: Float) {
-        draw(ctx);
+        draw(context, ctx);
         Browser.window.requestAnimationFrame(animate);
-        context.step();
+        // context.step();
     }
     Browser.window.requestAnimationFrame(animate);
 
@@ -74,23 +74,33 @@ inline function main() {
             context.addComponent(e, ({ radius: 5 + Math.random() * 5 }: CircleRendering));
         }
     });
+}
 
-    context.addSystem(Group([Include(Position.ID), Include(Velocity.ID)]), (components) -> {
+inline function init() {
+    // placeholder
+    
+}
+
+function draw(context: Composite.Context, ctx: CanvasRenderingContext2D) {
+    ctx.fillStyle = 'rgb(75, 220, 255)';
+    ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+
+    context.query(Group([Include(Position.ID), Include(Velocity.ID)]), (components) -> {
 		final position: Array<Position> = components[0];
 		final velocity: Array<Velocity> = components[1];
 		for (i in 0...position.length) {
 			position[i].x += velocity[i].x;
 			position[i].y += velocity[i].y;
-            if (position[i].x < 0 || position[i].x > canvas.width) {
+            if (position[i].x < 0 || position[i].x > ctx.canvas.width) {
                 velocity[i].x = -velocity[i].x;
             }
-            if (position[i].y < 0 || position[i].y > canvas.height) {
+            if (position[i].y < 0 || position[i].y > ctx.canvas.height) {
                 velocity[i].y = -velocity[i].y;
             }
 		}
-	}, 'MoveSystem');
+	});
     
-    context.addSystem(Group([Include(Position.ID), Include(CircleRendering.ID)]), (components) -> {
+    context.query(Group([Include(Position.ID), Include(CircleRendering.ID)]), (components) -> {
         ctx.fillStyle = 'rgb(0, 100, 255)';
 
 		final position: Array<Position> = components[0];
@@ -102,9 +112,9 @@ inline function main() {
             ctx.arc(pos.x, pos.y, radius, 0, Math.PI * 2);
             ctx.fill();
 		}
-	}, 'RenderSystem');
+	});
     
-    context.addSystem(Group([Include(Position.ID), Include(SquareRendering.ID)]), (components) -> {
+    context.query(Group([Include(Position.ID), Include(SquareRendering.ID)]), (components) -> {
         ctx.fillStyle = 'rgb(100, 0, 255)';
 
 		final position: Array<Position> = components[0];
@@ -124,29 +134,6 @@ inline function main() {
 
             ctx.restore();
 		}
-	}, 'RenderSystem');
-}
-
-inline function init() {
-    // placeholder
-    
-}
-
-function draw(ctx: CanvasRenderingContext2D) {
-    ctx.fillStyle = 'rgb(75, 220, 255)';
-    ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-
-    // ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-    // ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-    
-    // ctx.fillStyle = '#ff0000';
-    // ctx.strokeStyle = 'rgba(0, 153, 255, 0.4)';
-
-    // ctx.arc(x, y, radius, 0, Math.PI * 2);
-    // ctx.lineWidth = 5;
-    // ctx.beginPath();
-    // ctx.moveTo(20, 40);
-    // ctx.lineTo(200, 100 + Math.random() * 100);
-    // ctx.stroke();
+	});
 }
 #end
