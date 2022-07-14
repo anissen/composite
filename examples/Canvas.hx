@@ -54,7 +54,6 @@ inline function main() {
     function animate(time: Float) {
         draw(context, ctx);
         Browser.window.requestAnimationFrame(animate);
-        // context.step();
     }
     Browser.window.requestAnimationFrame(animate);
 
