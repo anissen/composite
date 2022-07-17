@@ -1,17 +1,16 @@
 package macros;
 
 #if macro
-
 import haxe.macro.Context;
 
-@:persistent var componentID = 0;
-
 function buildComponent() {
-    final componentTypeId = componentID++;
+    final qualifiedClassName = Context.getLocalClass().toString();
+    final qualifiedClassNameBytes = haxe.io.Bytes.ofString(qualifiedClassName);
+    final componentTypeId = haxe.crypto.Crc32.make(qualifiedClassNameBytes);
 
     final pos = Context.currentPos();
     var fields = Context.getBuildFields();
-    fields.push({
+    fields.push({ 
         name: "ID",
         access: [APublic, AStatic, AFinal, AInline],
         kind: FieldType.FVar(macro: Int, macro $v{componentTypeId}),

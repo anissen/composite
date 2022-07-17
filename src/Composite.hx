@@ -102,6 +102,7 @@ class Context {
 	var nextEntityId = 3;
 	final entityIndex = new Map<EntityId, Record>();
 	// final systems: Array<System> = [];
+	// final componentIdMap = new Map<String, EntityId>();
 	public final rootArchetype: Archetype = {
 		type: [],
 		entityIds: [],
@@ -119,11 +120,13 @@ class Context {
 		// addComponent(ecsId, ({}: EcsComponent));
 	}
 
-	public function createEntity(name: String): EntityId {
+	public function createEntity(?name: String): EntityId {
 		final entityId = nextEntityId++;
 
-		final destinationArchetype = findOrCreateArchetype([EcsId.ID]);
-		destinationArchetype.components[0].push(({ name: name }: EcsId));
+		final destinationArchetype = findOrCreateArchetype(name != null ? [EcsId.ID] : []);
+		if (name != null) {
+			destinationArchetype.components[0].push(({ name: name }: EcsId));
+		}
 		destinationArchetype.entityIds.push(entityId);
 		final record: Record = {
 			archetype: destinationArchetype,
@@ -134,16 +137,18 @@ class Context {
 		return entityId;
 	}
 	
-	public function addComponent(entity: EntityId, componentData: Component) {
+	public function addComponent(entity: EntityId, componentData: Component, componentId: Null<EntityId> = null) {
 		if (!entityIndex.exists(entity)) throw 'entity $entity does not exist';
 		final record = entityIndex[entity];
 		final archetype = record.archetype;
 		final type = archetype.type;
-		final componentId = componentData.getID();
+		final componentId = componentId ?? componentData.getID();
 		if (type.contains(componentId)) {
 			trace('component $componentId already exists on entity $entity');
 			return;
 		}
+		// final componentName = Type.getClassName(Type.getClass(componentData)); // TODO: This should be part of the component via the macro
+		// componentIdMap.set(componentName, componentId);
 		
 		// find destination archetype
 		final destinationType = type.concat([componentId]);
@@ -414,20 +419,6 @@ class Context {
 	}
 
 	public function save() {
-		trace('save');
-		/*
-		archetypes: [
-			{
-				type: ...,
-				components: [
-					[...],
-					[...],
-					[...],
-				],
-			},
-
-		]
-		*/
 		final data = [];
 		var queue = [rootArchetype];
 		while (queue.length != 0) {
@@ -457,22 +448,12 @@ class Context {
 	}
 
 	public function load(data: String) {
-		trace('load');
-		// 	[
-		// 		{"type": [0, 1, 2], "components": [
-		// 			[{"value": 100}, {"x": 3, "y": 7}, {"name": "Player"}],
-		// 			[{"value": 83}, {"x": 2, "y": 2}, {"name": "Player 2"}],
-		// 			[{"value": 75}, {"x": 3, "y": 3}, {"name": "Player 3"}]
-		// 		]}
-		// 	,
-		//		{"type": [1, 2], "components": [[{"x": 1, "y": 7}, {"name": "Blah?"}]]}
-		//	]
 		final data: Array<Dynamic> = haxe.Json.parse(data);
 		for (archetypeData in data) {
 			final type: Array<Int> = archetypeData.type;
 			final components: Array<Array<Any>> = archetypeData.components;
 			for (entityComponentsList in components) {
-				final entity = createEntity('N/A'); // TODO: Extract the name from the components
+				final entity = createEntity();
 				for (i => componentData in entityComponentsList) {
 					addComponent(entity, componentData, type[i]);
 				}
