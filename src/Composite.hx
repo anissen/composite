@@ -6,29 +6,16 @@ import haxe.Json;
 
 // Based on https://ajmmertens.medium.com/building-an-ecs-1-types-hierarchies-and-prefabs-9f07666a1e9d
 abstract EntityId(haxe.Int32) from Int to Int {}
-// typedef ComponentId = EntityId;
 typedef Components = Array<EntityId>;
 
-// typedef Expression = Array<EntityId>;
-
 // Type flags
-final InstanceOf: EntityId = 1 << 29;
-final ChildOf: EntityId = 2 << 28;
-
-// final EcsComponent_id = 1;
-// final EcsId_id = 2;
+// final InstanceOf: EntityId = 1 << 29;
+// final ChildOf: EntityId = 2 << 28;
 
 @:autoBuild(macros.Component.buildComponent())
 extern interface Component {
 	function getID(): Int;
 }
-
-// @:structInit
-// class EcsComponent implements Component {
-// 	public function toString() {
-// 		return 'EcsComponent';
-// 	}
-// }
 
 @:structInit
 class EcsId implements Component {
@@ -109,7 +96,7 @@ class Context {
 		clear();
 	}
 
-	public function clear() {
+	inline public function clear() {
 		nextEntityId = 0;
 		entityIndex.clear();
 		rootArchetype = {
@@ -459,36 +446,4 @@ class Context {
 			}
 		}
 	}
-
-
-	// inline function hasComponent(entity: EntityId, componentId: EntityId) {
-	// 	final record = entityIndex[entity];
-	// 	final archetype = record.archetype;
-	// 	final type = archetype.type;
-	// 	for (t in type) {
-	// 		if (t == componentId) return true;
-	// 	}
-	// 	return false;
-	// }
-	
-	// public function addSystem(expression: Expression, fn: (components: Array<Any>) -> Void, /* phase: OnUpdate, */ name: String) {
-	// 	systems.push({ expression: expression, fn: fn, name: name});
-	// }
-
-	// public function addSystemEx<T:{final ID: Int;}>(expression: Array<T>, fn: (components: Array<Any>) -> Void) {
-	// 	systems.push({ expression: expression.map(c -> c.ID), fn: fn, name: ''});
-	// }
-
-	// public function step() {
-	// 	for (system in systems) {
-	// 		query(system.expression, system.fn); // TODO: Query should be cached
-	// 	}
-	// }
-}
-
-@:structInit
-class System {
-	public final expression: Expression;
-	public final fn: (components: Array<Any>) -> Void;
-	public final name: String;
 }
