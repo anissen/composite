@@ -65,7 +65,7 @@ function main() {
 	
 	trace('----------------------------------------');
 
-	context.query(Group([Include(Position.ID), Exclude(Velocity.ID)]), (components) -> {
+	context.query(Group([Include(Position.ID), Include(Velocity.ID)]), (components) -> {
 		final position: Array<Position> = components[0];
 		for (pos in position) {
 			trace(pos);
