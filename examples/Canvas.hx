@@ -42,6 +42,7 @@ inline function main() {
     init();
     
     final context = new Composite.Context();
+    var entityCount = 0;
 
     final ctx = canvas.getContext2d();
     function animate(time: Float) {
@@ -55,7 +56,7 @@ inline function main() {
     // -------------------------------------------------------------------------
 
     canvas.onclick = (event -> {
-        final e = context.createEntity('Entity');
+        final e = context.createEntity('Entity ' + entityCount++);
         final square = Math.random() < 0.5;
         final speed = square ? 1.0 : 3.0;
         context.addComponent(e, ({ x: -speed + 2 * speed * Math.random(), y: -speed + 2 * speed * Math.random() }: Velocity));
@@ -72,16 +73,17 @@ inline function main() {
         switch event.key {
             case 'r':
                 trace('reset');
-                //context.clear();
+                context.clear();
             case 's':
                 trace('save');
                 final save = context.save();
-                trace(save);
+                // trace(save);
                 Browser.window.localStorage.setItem('save', save);
             case 'l':
                 trace('load');
                 final save = Browser.window.localStorage.getItem('save');
-                trace(save);
+                // trace(save);
+                context.clear();
                 context.load(save);
             case 'p':
                 trace('print');
@@ -97,7 +99,7 @@ inline function init() {
 }
 
 function draw(context: Composite.Context, ctx: CanvasRenderingContext2D) {
-    ctx.fillStyle = 'rgb(75, 220, 255)';
+    ctx.fillStyle = 'rgb(0, 0, 0)';
     ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 
     context.query(Group([Include(Position.ID), Include(Velocity.ID)]), (components) -> {

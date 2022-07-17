@@ -99,25 +99,27 @@ typedef ParsedExpression = {
 };
 
 class Context {
-	var nextEntityId = 3;
+	var nextEntityId = 0;
 	final entityIndex = new Map<EntityId, Record>();
-	// final systems: Array<System> = [];
-	// final componentIdMap = new Map<String, EntityId>();
-	public final rootArchetype: Archetype = {
-		type: [],
-		entityIds: [],
-		components: [],
-		// length: 0,
-		edges: [],
-	};
-	
+	public var rootArchetype: Archetype;
+	final queryArchetypeCache: Map<String, Array<Archetype>> = new Map();
+
 
 	inline public function new() {
-		// final ecsComponent = createEntity('EcsComponent');
-		// addComponent(ecsComponent, ({}: EcsComponent));
-		
-		// final ecsId = createEntity('EcsId');
-		// addComponent(ecsId, ({}: EcsComponent));
+		clear();
+	}
+
+	public function clear() {
+		nextEntityId = 0;
+		entityIndex.clear();
+		rootArchetype = {
+			type: [],
+			entityIds: [],
+			components: [],
+			// length: 0,
+			edges: [],
+		};
+		queryArchetypeCache.clear();
 	}
 
 	public function createEntity(?name: String): EntityId {
@@ -147,8 +149,6 @@ class Context {
 			trace('component $componentId already exists on entity $entity');
 			return;
 		}
-		// final componentName = Type.getClassName(Type.getClass(componentData)); // TODO: This should be part of the component via the macro
-		// componentIdMap.set(componentName, componentId);
 		
 		// find destination archetype
 		final destinationType = type.concat([componentId]);
@@ -331,7 +331,6 @@ class Context {
 	}
 
 	// TODO: Make proper terms (e.g. Component, !Component, OR, ...)
-	final queryArchetypeCache: Map<String, Array<Archetype>> = new Map();
 	public function queryArchetypes(includes: Array<EntityId>, excludes: Array<EntityId>): Array<Archetype> {
 		final queryKey = includes.join(',') + '-' + excludes.join(',');
 		if (queryArchetypeCache.exists(queryKey)) {
