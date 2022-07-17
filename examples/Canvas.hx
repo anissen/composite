@@ -18,6 +18,11 @@ final class Velocity implements Composite.Component {
 }
 
 @:structInit
+final class Color implements Composite.Component {
+    public var color: String;
+}
+
+@:structInit
 final class CircleRendering implements Composite.Component {
     public var radius: Float;
 }
@@ -55,6 +60,7 @@ inline function main() {
         final speed = square ? 1.0 : 3.0;
         context.addComponent(e, ({ x: -speed + 2 * speed * Math.random(), y: -speed + 2 * speed * Math.random() }: Velocity));
         context.addComponent(e, ({ x: event.clientX, y: event.clientY }: Position));
+        context.addComponent(e, ({ color: '#' + StringTools.hex(Math.floor(Math.random() * 16777215)) }: Color));
         if (square) {
             context.addComponent(e, ({ size: 10 + Math.random() * 10, rotation: Math.PI * 2 * Math.random() }: SquareRendering));
         } else {
@@ -109,34 +115,37 @@ function draw(context: Composite.Context, ctx: CanvasRenderingContext2D) {
         }
     });
     
-    context.query(Group([Include(Position.ID), Include(CircleRendering.ID)]), (components) -> {
-        ctx.fillStyle = 'rgb(0, 100, 255)';
-
+    context.query(Group([Include(Position.ID), Include(CircleRendering.ID), Include(Color.ID)]), (components) -> {
         final position: Array<Position> = components[0];
         final circle: Array<CircleRendering> = components[1];
+        final colors: Array<Color> = components[2];
         for (i in 0...position.length) {
             final pos = position[i];
             final radius = circle[i].radius;
+            final color = colors[i].color;
+            ctx.fillStyle = color;
             ctx.beginPath();
             ctx.arc(pos.x, pos.y, radius, 0, Math.PI * 2);
             ctx.fill();
         }
     });
     
-    context.query(Group([Include(Position.ID), Include(SquareRendering.ID)]), (components) -> {
-        ctx.fillStyle = 'rgb(100, 0, 255)';
-
+    context.query(Group([Include(Position.ID), Include(SquareRendering.ID), Include(Color.ID)]), (components) -> {
         final position: Array<Position> = components[0];
         final square: Array<SquareRendering> = components[1];
+        final colors: Array<Color> = components[2];
         for (i in 0...position.length) {
             final pos = position[i];
             final size = square[i].size;
             final rotation = square[i].rotation;
+            final color = colors[i].color;
+
             ctx.save();
             ctx.translate(pos.x + size / 2, pos.y + size / 2);
             ctx.rotate(rotation);
             ctx.translate(-(pos.x + size / 2), -(pos.y + size / 2));
-
+            
+            ctx.fillStyle = color;
             ctx.beginPath();
             ctx.rect(pos.x, pos.y, size, size);
             ctx.fill();
