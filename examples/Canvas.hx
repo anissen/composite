@@ -9,35 +9,23 @@ import js.html.CanvasRenderingContext2D;
 final class Position implements Composite.Component {
     public var x: Float;
     public var y: Float;
-    public function toString() {
-        return 'Position { x: $x, y: $y }';
-    }
 }
 
 @:structInit
 final class Velocity implements Composite.Component {
     public var x: Float;
     public var y: Float;
-    public function toString() {
-        return 'Velocity { x: $x, y: $y }';
-    }
 }
 
 @:structInit
 final class CircleRendering implements Composite.Component {
     public var radius: Float;
-    public function toString() {
-        return 'CircleRendering { radius: $radius }';
-    }
 }
 
 @:structInit
 final class SquareRendering implements Composite.Component {
     public var size: Float;
     public var rotation: Float;
-    public function toString() {
-        return 'SquareRendering { size: $size, rotation: $rotation }';
-    }
 }
 
 inline function main() {
@@ -75,29 +63,24 @@ inline function main() {
     });
 
     Browser.window.onkeydown = (event -> {
-        // on r key
-        if (event.keyCode == 82) {
-            trace('reset');
-            //context.clear();
-        }
-        // on s key
-        if (event.keyCode == 83) {
-            trace('save');
-            final save = context.save();
-            trace(save);
-            Browser.window.localStorage.setItem('save', save);
-        }
-        // on l key
-        if (event.keyCode == 76) {
-            trace('load');
-            final save = Browser.window.localStorage.getItem('save');
-            trace(save);
-            context.load(save);
-        }
-        // on p key
-        if (event.keyCode == 80) {
-            trace('print');
-            context.printArchetypeGraph(context.rootArchetype);
+        switch event.key {
+            case 'r':
+                trace('reset');
+                //context.clear();
+            case 's':
+                trace('save');
+                final save = context.save();
+                trace(save);
+                Browser.window.localStorage.setItem('save', save);
+            case 'l':
+                trace('load');
+                final save = Browser.window.localStorage.getItem('save');
+                trace(save);
+                context.load(save);
+            case 'p':
+                trace('print');
+                context.printArchetypeGraph(context.rootArchetype);
+            case _:
         }
     });
 }
