@@ -1,5 +1,7 @@
 package;
 
+import haxe.Json;
+
 // TODO: Split into separate local domain files.
 
 // Based on https://ajmmertens.medium.com/building-an-ecs-1-types-hierarchies-and-prefabs-9f07666a1e9d
@@ -99,7 +101,7 @@ typedef ParsedExpression = {
 class Context {
 	var nextEntityId = 3;
 	final entityIndex = new Map<EntityId, Record>();
-	final systems: Array<System> = [];
+	// final systems: Array<System> = [];
 	public final rootArchetype: Archetype = {
 		type: [],
 		entityIds: [],
@@ -410,6 +412,74 @@ class Context {
 		final archetypes = queryArchetypes(parsed.includes, parsed.excludes);
 		return Lambda.flatten([ for (node in archetypes) { node.entityIds; } ]);
 	}
+
+	public function save() {
+		trace('save');
+		/*
+		archetypes: [
+			{
+				type: ...,
+				components: [
+					[...],
+					[...],
+					[...],
+				],
+			},
+
+		]
+		*/
+		final data = [];
+		var queue = [rootArchetype];
+		while (queue.length != 0) {
+			final node = queue.pop();
+			if (node.entityIds.length != 0) {
+				final entityData = [];
+				final type = node.type;
+				for (e in 0...node.entityIds.length) {
+					final componentData = [];
+					for (t => _ in type) {
+						componentData.push(node.components[t][e]);
+					}
+					entityData.push(componentData);
+				}
+				data.push({
+					type: type,
+					components: entityData,
+				});
+			}
+			for (edge in node.edges) {
+				if (edge != null && edge.add != null) {
+					queue.push(edge.add);
+				}
+			}
+		}
+		return haxe.Json.stringify(data);
+	}
+
+	public function load(data: String) {
+		trace('load');
+		// 	[
+		// 		{"type": [0, 1, 2], "components": [
+		// 			[{"value": 100}, {"x": 3, "y": 7}, {"name": "Player"}],
+		// 			[{"value": 83}, {"x": 2, "y": 2}, {"name": "Player 2"}],
+		// 			[{"value": 75}, {"x": 3, "y": 3}, {"name": "Player 3"}]
+		// 		]}
+		// 	,
+		//		{"type": [1, 2], "components": [[{"x": 1, "y": 7}, {"name": "Blah?"}]]}
+		//	]
+		final data: Array<Dynamic> = haxe.Json.parse(data);
+		for (archetypeData in data) {
+			final type: Array<Int> = archetypeData.type;
+			final components: Array<Array<Any>> = archetypeData.components;
+			for (entityComponentsList in components) {
+				final entity = createEntity('N/A'); // TODO: Extract the name from the components
+				for (i => componentData in entityComponentsList) {
+					addComponent(entity, componentData, type[i]);
+				}
+			}
+		}
+	}
+
 
 	// inline function hasComponent(entity: EntityId, componentId: EntityId) {
 	// 	final record = entityIndex[entity];

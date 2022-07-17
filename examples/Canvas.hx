@@ -73,6 +73,33 @@ inline function main() {
             context.addComponent(e, ({ radius: 5 + Math.random() * 5 }: CircleRendering));
         }
     });
+
+    Browser.window.onkeydown = (event -> {
+        // on r key
+        if (event.keyCode == 82) {
+            trace('reset');
+            //context.clear();
+        }
+        // on s key
+        if (event.keyCode == 83) {
+            trace('save');
+            final save = context.save();
+            trace(save);
+            Browser.window.localStorage.setItem('save', save);
+        }
+        // on l key
+        if (event.keyCode == 76) {
+            trace('load');
+            final save = Browser.window.localStorage.getItem('save');
+            trace(save);
+            context.load(save);
+        }
+        // on p key
+        if (event.keyCode == 80) {
+            trace('print');
+            context.printArchetypeGraph(context.rootArchetype);
+        }
+    });
 }
 
 inline function init() {
