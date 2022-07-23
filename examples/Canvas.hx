@@ -33,7 +33,15 @@ final class SquareRendering implements Composite.Component {
     public var rotation: Float;
 }
 
+@:structInit
+final class Tail implements Composite.Component {
+    public var length: Int;
+    public var positions: Array<{ x: Float, y: Float }>;
+    public var time_left: Float;
+}
+
 inline function main() {
+    var timeAtLastUpdate = 0.0;
     final canvas = document.createCanvasElement();
     canvas.width = 800;
     canvas.height = 800;
@@ -46,7 +54,9 @@ inline function main() {
 
     final ctx = canvas.getContext2d();
     function animate(time: Float) {
-        draw(context, ctx);
+        final delta = (time - timeAtLastUpdate) / 1000.0;
+        timeAtLastUpdate = time;
+        draw(context, ctx, delta);
         Browser.window.requestAnimationFrame(animate);
     }
     Browser.window.requestAnimationFrame(animate);
@@ -66,6 +76,7 @@ inline function main() {
             context.addComponent(e, ({ size: 10 + Math.random() * 10, rotation: Math.PI * 2 * Math.random() }: SquareRendering));
         } else {
             context.addComponent(e, ({ radius: 5 + Math.random() * 5 }: CircleRendering));
+            context.addComponent(e, ({ length: 10 + Math.floor(Math.random() * 10), positions: [], time_left: 0 }: Tail));
         }
     });
 
@@ -98,7 +109,7 @@ inline function init() {
     
 }
 
-function draw(context: Composite.Context, ctx: CanvasRenderingContext2D) {
+function draw(context: Composite.Context, ctx: CanvasRenderingContext2D, dt: Float) {
     ctx.fillStyle = 'rgb(0, 0, 0)';
     ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 
@@ -113,6 +124,41 @@ function draw(context: Composite.Context, ctx: CanvasRenderingContext2D) {
             }
             if (position[i].y < 0 || position[i].y > ctx.canvas.height) {
                 velocity[i].y = -velocity[i].y;
+            }
+        }
+    });
+   
+    // update tail
+    context.query(Group([Include(Position.ID), Include(Tail.ID)]), (components) -> {
+        final positions: Array<Position> = components[0];
+        final tails: Array<Tail> = components[1];
+        for (i in 0...positions.length) {
+            final tail = tails[i];
+            tail.time_left -= dt;
+            if (tail.time_left <= 0) {
+                tail.time_left = 0.025;
+                if (tail.positions.length > tail.length) {
+                    tail.positions.shift();
+                }
+                final pos = positions[i];
+                tail.positions.push({ x: pos.x, y: pos.y });
+            }
+        }
+    });
+
+    // render tail
+    context.query(Group([Include(Tail.ID), Include(Color.ID)]), (components) -> {
+        final tails: Array<Tail> = components[0];
+        final colors: Array<Color> = components[1];
+        for (i in 0...tails.length) {
+            final tail = tails[i];
+            final color = colors[i].color;
+
+            ctx.fillStyle = color;
+            for (tailPos in tail.positions) {
+                ctx.beginPath();
+                ctx.arc(tailPos.x, tailPos.y, 2, 0, Math.PI * 2);
+                ctx.fill();
             }
         }
     });
