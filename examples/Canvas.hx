@@ -45,6 +45,7 @@ inline function main() {
     final canvas = document.createCanvasElement();
     canvas.width = 800;
     canvas.height = 800;
+    canvas.style.border = "1px solid black";
     document.body.appendChild(canvas);
 
     init();
@@ -110,7 +111,7 @@ inline function init() {
 }
 
 function draw(context: Composite.Context, ctx: CanvasRenderingContext2D, dt: Float) {
-    ctx.fillStyle = 'rgb(0, 0, 0)';
+    ctx.fillStyle = 'white';
     ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 
     context.query(Group([Include(Position.ID), Include(Velocity.ID)]), (components) -> {
