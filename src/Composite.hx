@@ -126,6 +126,7 @@ class Context {
 		return entityId;
 	}
 	
+	// TODO: Should probably be `setComponent`
 	public function addComponent(entity: EntityId, componentData: Component, componentId: Null<EntityId> = null) {
 		if (!entityIndex.exists(entity)) throw 'entity $entity does not exist';
 		final record = entityIndex[entity];
@@ -151,7 +152,7 @@ class Context {
 		for (i => t in type) {
 			if (!newComponentInserted && t != destinationArchetype.type[i]) {
 				// trace(componentData);
-				destinationArchetype.components[i].push(componentData);
+				destinationArchetype.components[i].push(componentData); // BUG: Possible bug: should this be `index` instead of `i`?!?
 				newComponentInserted = true;
 				index++;
 				if (index >= destinationArchetype.components.length) {
@@ -211,6 +212,9 @@ class Context {
 
 	function findOrCreateArchetype(type: Components): Archetype {
 		// trace('findOrCreateArchetype(${archetype.type}, $type)');
+		// [A, C] => [A, B, C] (add B)
+		// [A, B, C] => [A, C] (remove B)
+		// TODO: We assume that components are either added or removed in this function, never both (e.g. [A, B] => [B, C]) and never changed (e.g. [A, B] => [A, C] is not supported)
 		var node = rootArchetype;
 		for (t in type) {
 			if (node.type.contains(t)) continue;
