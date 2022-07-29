@@ -45,7 +45,7 @@ inline function main() {
     final canvas = document.createCanvasElement();
     canvas.width = 800;
     canvas.height = 800;
-    canvas.style.border = "1px solid black";
+    canvas.style.border = "1px solid #4C4E52";
     document.body.appendChild(canvas);
 
     init();

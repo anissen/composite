@@ -1,6 +1,22 @@
 <html>
 	<head>
 		<title>Canvas example</title>
+		<style>
+			@media (prefers-color-scheme: light) {
+				body {
+					background-color: white;
+				}
+			}
+
+			@media (prefers-color-scheme: dark) {
+				body {
+					background-color: #4C4E52;
+				}
+				canvas {
+					filter: invert(1) hue-rotate(180deg);
+				}
+			}
+		</style>
 	</head>
 	<body>
 		<script src="canvas.js"></script>
