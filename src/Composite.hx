@@ -210,6 +210,77 @@ class Context {
 		entityIndex.set(entity, newRecord);
 	}
 
+	public function removeComponent(entity: EntityId, componentId: EntityId) {
+		if (!entityIndex.exists(entity)) throw 'entity $entity does not exist';
+		final record = entityIndex[entity];
+		final archetype = record.archetype;
+		final type = archetype.type;
+		if (!type.contains(componentId)) {
+			trace('component $componentId does not exist on entity $entity');
+			return;
+		}
+		
+		// find destination archetype
+		final destinationType = type.copy();
+		destinationType.splice(type.indexOf(componentId), 1); // TODO: Ought to use swap-remove
+		destinationType.sort((x, y) -> x - y);
+		var destinationArchetype = findOrCreateArchetype(destinationType);
+
+		// insert entity into component array of destination
+		destinationArchetype.entityIds.push(entity);
+		
+		// copy overlapping components from source to destination
+		var index = 0;
+		for (i => t in type) {
+			if (!destinationType.contains(t)) continue;
+			destinationArchetype.components[index].push(archetype.components[i][record.row]);
+			index++;
+		}
+		
+		// remove entity from component array of source
+		archetype.entityIds.splice(record.row, 1); // TODO: We should probably swap the old entity down to the end of the `active` part of the array instead. Or at least to a swap-remove
+		
+		// Remove source archetype if it is now empty and is a leaf in the graph
+		if (archetype.entityIds.length == 0) {
+			// for (t => edge in archetype.edges) {
+			// 	// TODO: Remove archetype from the edges of adjacent archetypes
+			// 	if (edge.add != null) {
+			// 		final adjacentAdd = edge.add;
+			// 		for (t2 => adjacentEdge in adjacentAdd.edges) {
+			// 			// if (adjacentEdge.remove != null) trace('${adjacentEdge.remove.id} == ${archetype.id}');
+			// 			if (t2 == t && adjacentEdge.remove == archetype) {
+			// 				trace('removing `remove` edge: ' + t + ' -> ' + t2);
+			// 				trace(adjacentEdge.remove);
+			// 				adjacentEdge.remove = null;
+			// 			}
+			// 		} 
+			// 	}
+			// 	if (edge.remove != null) {
+			// 		final adjacentRemove = edge.remove;
+			// 		for (t2 => adjacentEdge in adjacentRemove.edges) {
+			// 			// if (adjacentEdge.add != null) trace('${adjacentEdge.add.id} == ${archetype.id}');
+			// 			if (t2 == t && adjacentEdge.add == archetype) {
+			// 				trace('removing `add` edge: ' + t + ' -> ' + t2);
+			// 				trace(adjacentEdge.add);
+			// 				adjacentEdge.add = null;
+			// 			}
+			// 		} 
+			// 	}
+			// }
+		}
+		// remove components from source archetype
+		for (i => _ in type) {
+			archetype.components[i].splice(record.row, 1);
+		}
+
+		// point the entity record to the new archetype
+		var newRecord: Record = {
+			archetype: destinationArchetype,
+			row: destinationArchetype.entityIds.length - 1
+		};
+		entityIndex.set(entity, newRecord);
+	}
+
 	function findOrCreateArchetype(type: Components): Archetype {
 		// trace('findOrCreateArchetype(${archetype.type}, $type)');
 		// [A, C] => [A, B, C] (add B)
