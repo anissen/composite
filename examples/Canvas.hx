@@ -78,6 +78,13 @@ inline function main() {
         } else {
             context.addComponent(e, ({ radius: 5 + Math.random() * 5 }: CircleRendering));
             context.addComponent(e, ({ length: 10 + Math.floor(Math.random() * 10), positions: [], time_left: 0 }: Tail));
+            Browser.window.setTimeout(() -> {
+                // trace(e);
+                // trace(context.getComponentsForEntity(e));
+                var color: Color = context.getComponent(e, Color.ID);
+                color.color = 'red';
+                context.removeComponent(e, Velocity.ID);
+            }, 2500);
         }
     });
 
