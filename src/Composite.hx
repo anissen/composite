@@ -168,6 +168,15 @@ class Context {
 		
 		// remove entity from component array of source
 		archetype.entityIds.splice(record.row, 1); // TODO: We should probably swap the old entity down to the end of the `active` part of the array instead
+
+		// HACK: This is slow! We want to avoid this by simply marking the removed entity as inactive.
+		for (i => e in archetype.entityIds) {
+			if (i < record.row) continue;
+			entityIndex.set(e, {
+				archetype: archetype,
+				row: i
+			});
+		}
 		
 		// Remove source archetype if it is now empty and is a leaf in the graph
 		if (archetype.entityIds.length == 0) {
@@ -239,6 +248,15 @@ class Context {
 		
 		// remove entity from component array of source
 		archetype.entityIds.splice(record.row, 1); // TODO: We should probably swap the old entity down to the end of the `active` part of the array instead. Or at least to a swap-remove
+
+		// HACK: This is slow! We want to avoid this by simply marking the removed entity as inactive.
+		for (i => e in archetype.entityIds) {
+			if (i < record.row) continue;
+			entityIndex.set(e, {
+				archetype: archetype,
+				row: i
+			});
+		}
 		
 		// Remove source archetype if it is now empty and is a leaf in the graph
 		if (archetype.entityIds.length == 0) {
