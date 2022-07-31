@@ -1,10 +1,14 @@
 -cp src
 -cp examples
 -D analyzer-optimize
---dce full
+-dce full
 --debug
+
 # --run examples.Basic
+
 # --run examples.Playground
 
 --main examples.Canvas
 --js examples/canvas.js
+-D js-es=6
+-D analyzer-user-var-fusion
