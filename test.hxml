@@ -1,0 +1,6 @@
+-cp src
+-cp tests
+-lib utest
+-lib test-adapter
+-x tests.TestAll
+#--run test.TestAll
