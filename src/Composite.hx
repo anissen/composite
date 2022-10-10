@@ -496,6 +496,10 @@ class Context {
 		final archetypes = queryArchetypes(parsed.includes, parsed.excludes);
 		return Lambda.flatten([ for (node in archetypes) { node.entityIds; } ]);
 	}
+	
+	public function hasComponent(entity: EntityId, componentId: EntityId): Bool {
+		return entityIndex[entity].archetype.type.contains(componentId);
+	}
 
 	public function save() {
 		final data = [];
