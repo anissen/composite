@@ -7,17 +7,12 @@
 			"group": {
 				"kind": "build",
 				"isDefault": true
-			}
+			},
+			"label": "haxe: active configuration"
 		},
 		{
 			"type": "hxml",
 			"file": "test.hxml",
-			"problemMatcher": [
-				"$haxe-absolute",
-				"$haxe",
-				"$haxe-error",
-				"$haxe-trace"
-			],
 			"group": {
 				"kind": "test",
 				"isDefault": true

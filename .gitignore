@@ -2,3 +2,5 @@
 examples/canvas.js
 examples/canvas.js.map
 .unittest
+examples/canvas/canvas.js
+examples/canvas/canvas.js.map
