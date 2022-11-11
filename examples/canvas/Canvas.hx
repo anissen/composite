@@ -1,4 +1,4 @@
-package examples;
+package examples.canvas;
 
 #if js
 import js.Browser;

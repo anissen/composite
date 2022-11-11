@@ -8,8 +8,8 @@
 
 # --run examples.Playground
 
---main examples.Canvas
---js examples/canvas.js
+--main examples.canvas.Canvas
+--js examples/canvas/canvas.js
 -D js-es=6
 -D analyzer-user-var-fusion
 -lib utest
