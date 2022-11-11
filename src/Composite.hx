@@ -140,7 +140,7 @@ class Context {
 		
 		// find destination archetype
 		final destinationType = type.concat([componentId]);
-		destinationType.sort((x, y) -> x - y);
+		destinationType.sort((x, y) -> x - y); // TODO: It would be better to use a sorted data structure
 		var destinationArchetype = findOrCreateArchetype(destinationType);
 
 		// insert entity into component array of destination
@@ -498,6 +498,7 @@ class Context {
 	}
 	
 	public function hasComponent(entity: EntityId, componentId: EntityId): Bool {
+		// TODO: This can be improved (and some other code may be simplified) by using a component index, see https://ajmmertens.medium.com/building-an-ecs-1-where-are-my-entities-and-components-63d07c7da742 and https://ajmmertens.medium.com/building-an-ecs-2-archetypes-and-vectorization-fe21690805f9
 		return entityIndex[entity].archetype.type.contains(componentId);
 	}
 
