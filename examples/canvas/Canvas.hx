@@ -36,7 +36,7 @@ final class SquareRendering implements Composite.Component {
 @:structInit
 final class Tail implements Composite.Component {
     public var length: Int;
-    public var positions: Array<{ x: Float, y: Float }>;
+    public var positions: Array<{x: Float, y: Float}>;
     public var time_left: Float;
 }
 
@@ -49,7 +49,7 @@ inline function main() {
     document.body.appendChild(canvas);
 
     init();
-    
+
     final context = new Composite.Context();
     var entityCount = 0;
 
@@ -70,21 +70,23 @@ inline function main() {
         final e = context.createEntity('Entity ' + entityCount++);
         final square = Math.random() < 0.5;
         final speed = square ? 1.0 : 3.0;
-        context.addComponent(e, ({ x: -speed + 2 * speed * Math.random(), y: -speed + 2 * speed * Math.random() }: Velocity));
-        context.addComponent(e, ({ x: event.clientX, y: event.clientY }: Position));
-        context.addComponent(e, ({ color: '#' + StringTools.hex(Math.floor(Math.random() * 16777215)) }: Color));
+        context.addComponent(e, ({x: event.clientX, y: event.clientY}: Position));
+        context.addComponent(e, ({color: '#' + StringTools.hex(Math.floor(Math.random() * 16777215))}: Color));
+        Browser.window.setTimeout(() -> {
+            context.addComponent(e, ({x: -speed + 2 * speed * Math.random(), y: -speed + 2 * speed * Math.random()}: Velocity));
+        }, 1000);
         if (square) {
-            context.addComponent(e, ({ size: 10 + Math.random() * 10, rotation: Math.PI * 2 * Math.random() }: SquareRendering));
+            context.addComponent(e, ({size: 10 + Math.random() * 10, rotation: Math.PI * 2 * Math.random()}: SquareRendering));
         } else {
-            context.addComponent(e, ({ radius: 5 + Math.random() * 5 }: CircleRendering));
-            context.addComponent(e, ({ length: 10 + Math.floor(Math.random() * 10), positions: [], time_left: 0 }: Tail));
+            context.addComponent(e, ({radius: 5 + Math.random() * 5}: CircleRendering));
+            context.addComponent(e, ({length: 10 + Math.floor(Math.random() * 10), positions: [], time_left: 0}: Tail));
             Browser.window.setTimeout(() -> {
                 // trace(e);
                 // trace(context.getComponentsForEntity(e));
                 var color: Color = context.getComponent(e, Color.ID);
                 color.color = 'red';
                 context.removeComponent(e, Velocity.ID);
-            }, 2500);
+            }, 3000);
         }
     });
 
@@ -114,7 +116,6 @@ inline function main() {
 
 inline function init() {
     // placeholder
-    
 }
 
 function draw(context: Composite.Context, ctx: CanvasRenderingContext2D, dt: Float) {
@@ -135,7 +136,7 @@ function draw(context: Composite.Context, ctx: CanvasRenderingContext2D, dt: Flo
             }
         }
     });
-   
+
     // update tail
     context.query(Group([Include(Position.ID), Include(Tail.ID)]), (components) -> {
         final positions: Array<Position> = components[0];
@@ -149,7 +150,7 @@ function draw(context: Composite.Context, ctx: CanvasRenderingContext2D, dt: Flo
                     tail.positions.shift();
                 }
                 final pos = positions[i];
-                tail.positions.push({ x: pos.x, y: pos.y });
+                tail.positions.push({x: pos.x, y: pos.y});
             }
         }
     });
@@ -170,7 +171,7 @@ function draw(context: Composite.Context, ctx: CanvasRenderingContext2D, dt: Flo
             }
         }
     });
-    
+
     context.query(Group([Include(Position.ID), Include(CircleRendering.ID), Include(Color.ID)]), (components) -> {
         final position: Array<Position> = components[0];
         final circle: Array<CircleRendering> = components[1];
@@ -185,7 +186,7 @@ function draw(context: Composite.Context, ctx: CanvasRenderingContext2D, dt: Flo
             ctx.fill();
         }
     });
-    
+
     context.query(Group([Include(Position.ID), Include(SquareRendering.ID), Include(Color.ID)]), (components) -> {
         final position: Array<Position> = components[0];
         final square: Array<SquareRendering> = components[1];
@@ -200,7 +201,7 @@ function draw(context: Composite.Context, ctx: CanvasRenderingContext2D, dt: Flo
             ctx.translate(pos.x + size / 2, pos.y + size / 2);
             ctx.rotate(rotation);
             ctx.translate(-(pos.x + size / 2), -(pos.y + size / 2));
-            
+
             ctx.fillStyle = color;
             ctx.beginPath();
             ctx.rect(pos.x, pos.y, size, size);
