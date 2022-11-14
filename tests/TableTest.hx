@@ -15,13 +15,13 @@ final class TestColorComponent implements Composite.Component {
 
 class TableTest extends utest.Test {
     function testInstatiate() {
-        final table = new Table([]);
+        final table = new Table(0);
         Assert.isTrue(table != null);
         Assert.equals(0, table.getRowCount());
     }
 
     function testInsertTypedRow() {
-        final table = new Table([TestPositionComponent.ID, TestColorComponent.ID]);
+        final table = new Table(2);
         table.addRow(0, [
             ({x: 23, y: 45.7}: TestPositionComponent),
             ({color: 'blue'}: TestColorComponent),
@@ -30,7 +30,7 @@ class TableTest extends utest.Test {
     }
 
     function testInsertGetRow() {
-        final table = new Table([TestPositionComponent.ID, TestColorComponent.ID]);
+        final table = new Table(2);
         table.addRow(0, [
             ({x: 23, y: 45.7}: TestPositionComponent),
             ({color: 'blue'}: TestColorComponent),
@@ -45,13 +45,13 @@ class TableTest extends utest.Test {
     }
 
     function testInsertRowWithInvalidColumnLength() {
-        final table = new Table([TestPositionComponent.ID, TestColorComponent.ID]);
+        final table = new Table(2);
         Assert.raises(table.addRow.bind(42, [{x: 4, y: 3}]));
         Assert.raises(table.addRow.bind(42, [{x: 4, y: 3}, {color: 'red'}, {z: 3}]));
     }
 
     function testDeleteRowOutOfBounds() {
-        final table = new Table([]);
+        final table = new Table(0);
         Assert.raises(table.deleteRow.bind(0));
         Assert.raises(table.deleteRow.bind(-1));
         table.addRow(42, []);
@@ -61,7 +61,7 @@ class TableTest extends utest.Test {
     }
 
     function testDeleteRow() {
-        final table = new Table([0]);
+        final table = new Table(1);
         table.addRow(42, [0]);
         table.deleteRow(0);
         Assert.equals(0, table.getRowCount());
@@ -77,19 +77,4 @@ class TableTest extends utest.Test {
         Assert.equals(0, table.getRow(0)[0]);
         Assert.equals(2, table.getRow(1)[0]);
     }
-
-    // function testMoveRow() {
-    //     final table = new Table([TestPositionComponent.ID, TestColorComponent.ID]);
-    //     table.addRow(0, [
-    //         ({x: 23, y: 45.7}: TestPositionComponent),
-    //         ({color: 'blue'}: TestColorComponent),
-    //     ]);
-    //     final table2 = new Table([TestPositionComponent.ID, TestColorComponent.ID]);
-    //     table.moveRow(0, table2);
-    //     Assert.equals(0, table.getRowCount());
-    //     Assert.equals(1, table2.getRowCount());
-    //     final row = table2.getRow(0);
-    //     final color = (row[1]: TestColorComponent);
-    //     Assert.equals('blue', color.color);
-    // }
 }
