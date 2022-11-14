@@ -35,21 +35,94 @@ class Edge {
     }
 }
 
-@:structInit
 class Archetype {
     static var archetypeId: Int = 0;
 
+    // TODO: Make as many of the following private as possible
     public final id: Int = archetypeId++;
     public final type: Components; // array of component ID's
-
-    public final table: Table;
 
     // public final length: Int;
     public final edges: Map<EntityId, Edge>;
 
+    public final ids: Array<EntityId>;
+
+    final columns: Array<Array<Any>>;
+
+    public function new(type: Components) {
+        this.type = type;
+        ids = [];
+        edges = [];
+        columns = [for (_ in type) []];
+    }
+
+    public function addRow(id: EntityId, data: Array<Any>) {
+        if (data.length != columns.length)
+            throw 'data length does not match column count';
+
+        ids.push(id);
+        for (i => d in data) {
+            columns[i].push(d);
+        }
+    }
+
+    static inline function swapRemove<T>(arr: Array<T>, index: Int) {
+        arr[index] = arr[arr.length - 1];
+        arr.pop();
+    }
+
+    public function deleteRow(row: Int) {
+        if (row < 0 || row >= ids.length) throw 'row $row is out of bounds';
+
+        // TODO: We should probably swap the old entity down to the end of the `active` part of the array instead.
+        swapRemove(ids, row);
+        for (c in columns) {
+            swapRemove(c, row);
+        }
+    }
+
+    public function getColumnCount(): Int {
+        return columns.length;
+    }
+
+    public function getId(index: Int): EntityId {
+        if (index < 0 || index >= ids.length) throw 'row $index is out of bounds';
+        return ids[index];
+    }
+
+    public function getCell(row: Int, column: Int): Any {
+        if (row < 0 || row >= ids.length) throw 'row $row is out of bounds';
+        final rowData = columns[row];
+        if (column < 0 || column >= rowData.length) throw 'column $column is out of bounds';
+        return rowData[column];
+    }
+
+    public function getColumn(index: Int): Array<Any> {
+        if (index < 0 || index >= columns.length) throw 'column $index is out of bounds';
+        return columns[index];
+    }
+
+    public function getRow(index: Int): Array<Any> {
+        if (index < 0 || index >= ids.length) throw 'row $index is out of bounds';
+        return [for (c in columns) c[index]];
+    }
+
+    public function getRowCount(): Int {
+        return ids.length;
+    }
+
+    public function print() {
+        trace('| id | ${[for (i => _ in columns) "data" + (i + 1)].join(" | ")} |');
+        trace('-----------------------');
+        for (i => id in ids) {
+            final rowStr = [for (c in columns) c[i]].join(' | ');
+            trace('| $id | $rowStr |');
+        }
+    }
+
     public function toString() {
         final edgesString = [for (k => v in edges) '$k\t=> $v'].join("\n\t\t");
-        return 'Archetype { \n\ttype: $type, \n\tentityId: ${table.ids}, \n\tedges: \n\t\t$edgesString} \n}';
+        return 'Archetype { \n\ttype: $type, \n\tentityId: $ids, \n\tedges: \n\t\t$edgesString} \n}';
     }
 }
 
@@ -104,12 +177,7 @@ class Context {
     inline public function clear() {
         nextEntityId = 0;
         entityIndex.clear();
-        rootArchetype = {
-            type: [],
-            table: new Table(0),
-            // length: 0,
-            edges: [],
-        };
+        rootArchetype = new Archetype([]);
         queryArchetypeCache.clear();
     }
 
@@ -119,14 +187,14 @@ class Context {
         var destinationArchetype: Archetype;
         if (name != null) {
             destinationArchetype = findOrCreateArchetype([EcsId.ID]);
-            destinationArchetype.table.addRow(entityId, [({name: name}: EcsId)]);
+            destinationArchetype.addRow(entityId, [({name: name}: EcsId)]);
         } else {
             destinationArchetype = findOrCreateArchetype([]);
-            destinationArchetype.table.addRow(entityId, []);
+            destinationArchetype.addRow(entityId, []);
         }
         final record: Record = {
             archetype: destinationArchetype,
-            row: destinationArchetype.table.getRowCount() - 1,
+            row: destinationArchetype.getRowCount() - 1,
         };
         entityIndex.set(entityId, record);
 
@@ -153,7 +221,7 @@ class Context {
         var destinationArchetype = findOrCreateArchetype(destinationType);
 
         // copy overlapping components from source to destination + insert new component
-        final sourceRow = archetype.table.getRow(record.row);
+        final sourceRow = archetype.getRow(record.row);
         var sourceRowIndex = 0;
         final destRow = [];
         for (t in destinationArchetype.type) { // e.g. [A, C] + B => [A, B, C]
@@ -164,13 +232,13 @@ class Context {
             }
         }
 
-        destinationArchetype.table.addRow(entity, destRow);
+        destinationArchetype.addRow(entity, destRow);
 
         // remove entity and components from source archetype
-        archetype.table.deleteRow(record.row);
+        archetype.deleteRow(record.row);
 
         // HACK: This is slow! We want to avoid this by simply marking the removed entity as inactive.
-        for (i => e in archetype.table.ids) {
+        for (i => e in archetype.ids) {
             if (i < record.row)
                 continue;
             entityIndex.set(e, {
@@ -180,7 +248,7 @@ class Context {
         }
 
         // Remove source archetype if it is now empty and is a leaf in the graph
-        if (archetype.table.getRowCount() == 0) {
+        if (archetype.getRowCount() == 0) {
             // for (t => edge in archetype.edges) {
             // 	// TODO: Remove archetype from the edges of adjacent archetypes
             // 	if (edge.add != null) {
@@ -211,7 +279,7 @@ class Context {
         // point the entity record to the new archetype
         var newRecord: Record = {
             archetype: destinationArchetype,
-            row: destinationArchetype.table.getRowCount() - 1
+            row: destinationArchetype.getRowCount() - 1
         };
         entityIndex.set(entity, newRecord);
     }
@@ -234,7 +302,7 @@ class Context {
         var destinationArchetype = findOrCreateArchetype(destinationType);
 
         // copy overlapping components from source to destination, e.g. [A, B, C] - B => [A, C]
-        final sourceRow = archetype.table.getRow(record.row);
+        final sourceRow = archetype.getRow(record.row);
         final destRow = [];
         var index = 0;
         for (i => t in type) {
@@ -245,13 +313,13 @@ class Context {
             destRow.push(sourceRow[index++]);
         }
         // insert entity and components into destination archetype
-        destinationArchetype.table.addRow(entity, destRow);
+        destinationArchetype.addRow(entity, destRow);
 
         // remove entity and components from source archetype
-        archetype.table.deleteRow(record.row); // TODO: We should probably swap the old entity down to the end of the `active` part of the array instead.
+        archetype.deleteRow(record.row); // TODO: We should probably swap the old entity down to the end of the `active` part of the array instead.
 
         // HACK: This is slow! We want to avoid this by simply marking the removed entity as inactive.
-        for (i => e in archetype.table.ids) {
+        for (i => e in archetype.ids) {
             if (i < record.row)
                 continue;
             entityIndex.set(e, {
@@ -261,7 +329,7 @@ class Context {
         }
 
         // Remove source archetype if it is now empty and is a leaf in the graph
-        if (archetype.table.getRowCount() == 0) {
+        if (archetype.getRowCount() == 0) {
             // for (t => edge in archetype.edges) {
             // 	// TODO: Remove archetype from the edges of adjacent archetypes
             // 	if (edge.add != null) {
@@ -292,7 +360,7 @@ class Context {
         // point the entity record to the new archetype
         var newRecord: Record = {
             archetype: destinationArchetype,
-            row: destinationArchetype.table.getRowCount() - 1
+            row: destinationArchetype.getRowCount() - 1
         };
         entityIndex.set(entity, newRecord);
     }
@@ -319,16 +387,13 @@ class Context {
                 // trace('creating new archetype for $typesSoFar');
                 final newType = node.type.concat([t]);
                 newType.sort((x, y) -> x - y);
-                final newArchetype: Archetype = {
-                    type: newType,
-                    table: new Table(newType.length),
-                    edges: [
-                        t => {
-                            add: null,
-                            remove: node,
-                        }
-                    ],
-                };
+                final newArchetype = new Archetype(newType);
+                newArchetype.edges = [
+                    t => {
+                        add: null,
+                        remove: node,
+                    }
+                ];
                 edge.add = newArchetype;
                 queryArchetypeCache.clear(); // clear the archetype cache
             }
@@ -343,7 +408,7 @@ class Context {
         final record = entityIndex[entity];
         final archetype = record.archetype;
         final row = record.row;
-        for (i => component in archetype.table.getRow(row)) {
+        for (i => component in archetype.getRow(row)) {
             trace('    #$i: $component');
         }
     }
@@ -361,7 +426,7 @@ class Context {
         function println(s: String) {
             #if sys Sys.println(s); #else trace(s); #end
         }
-        println('"${node.type}${node.id}" [label="${node.type} (entities: ${node.table.getRowCount()})"];');
+        println('"${node.type}${node.id}" [label="${node.type} (entities: ${node.getRowCount()})"];');
         for (t => edge in node.edges) {
             if (edge != null && edge.add != null) {
                 println('"${node.type}${node.id}" -> "${edge.add.type}${edge.add.id}" [label="add ${t}"];');
@@ -380,7 +445,7 @@ class Context {
         final type = archetype.type;
         for (i => t in type) {
             if (t == componentId)
-                return archetype.table.getCell(record.row, i);
+                return archetype.getCell(record.row, i);
         }
         return null;
     }
@@ -388,7 +453,7 @@ class Context {
     public function getComponentsForEntity(entity: EntityId): Array<Any> {
         final record = entityIndex[entity];
         final archetype = record.archetype;
-        return archetype.table.getRow(record.row);
+        return archetype.getRow(record.row);
     }
 
     function getArchetypesWithComponent(componentId: EntityId): Array<Archetype> {
@@ -486,7 +551,7 @@ class Context {
         for (i => term in parsed.includes) {
             for (archetype in archetypes) {
                 // TODO: Could we avoid creating and copying arrays here? Maybe allow `fn` to index into the component arrays of the different archetypes?
-                final termData = archetype.table.getColumn(archetype.type.indexOf(term));
+                final termData = archetype.getColumn(archetype.type.indexOf(term));
                 componentsForTerms[i] = componentsForTerms[i].concat(termData);
             }
         }
@@ -499,7 +564,7 @@ class Context {
         final archetypes = queryArchetypes(parsed.includes, parsed.excludes);
         return Lambda.flatten([
             for (node in archetypes) {
-                node.table.ids;
+                node.ids;
             }
         ]);
     }
@@ -514,12 +579,12 @@ class Context {
         var queue = [rootArchetype];
         while (queue.length != 0) {
             final node = queue.pop();
-            if (node.table.getRowCount() != 0) {
+            if (node.getRowCount() != 0) {
                 final entityData = [
-                    for (i in 0...node.table.getRowCount()) {
-                        node.table.getRow(i);
+                    for (i in 0...node.getRowCount()) {
+                        node.getRow(i);
                     }
-                ]
+                ];
                 data.push({
                     type: node.type,
                     components: entityData,
