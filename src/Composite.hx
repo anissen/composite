@@ -43,8 +43,7 @@ class Archetype {
     public final type: Components; // array of component ID's
 
     // public final length: Int;
-    public final edges: Map<EntityId, Edge>;
-
+    public var edges: Map<EntityId, Edge>;
     public final ids: Array<EntityId>;
 
     final columns: Array<Array<Any>>;
@@ -184,17 +183,17 @@ class Context {
     public function createEntity(?name: String): EntityId {
         final entityId = nextEntityId++;
 
-        var destinationArchetype: Archetype;
+        var destArchetype: Archetype;
         if (name != null) {
-            destinationArchetype = findOrCreateArchetype([EcsId.ID]);
-            destinationArchetype.addRow(entityId, [({name: name}: EcsId)]);
+            destArchetype = findOrCreateArchetype([EcsId.ID]);
+            destArchetype.addRow(entityId, [({name: name}: EcsId)]);
         } else {
-            destinationArchetype = findOrCreateArchetype([]);
-            destinationArchetype.addRow(entityId, []);
+            destArchetype = findOrCreateArchetype([]);
+            destArchetype.addRow(entityId, []);
         }
         final record: Record = {
-            archetype: destinationArchetype,
-            row: destinationArchetype.getRowCount() - 1,
+            archetype: destArchetype,
+            row: destArchetype.getRowCount() - 1,
         };
         entityIndex.set(entityId, record);
 
@@ -216,15 +215,15 @@ class Context {
         }
 
         // find destination archetype
-        final destinationType = type.concat([componentId]);
-        destinationType.sort((x, y) -> x - y); // TODO: It would be better to use a sorted data structure
-        var destinationArchetype = findOrCreateArchetype(destinationType);
+        final destType = type.concat([componentId]);
+        destType.sort((x, y) -> x - y); // TODO: It would be better to use a sorted data structure
+        var destArchetype = findOrCreateArchetype(destType);
 
         // copy overlapping components from source to destination + insert new component
         final sourceRow = archetype.getRow(record.row);
         var sourceRowIndex = 0;
         final destRow = [];
-        for (t in destinationArchetype.type) { // e.g. [A, C] + B => [A, B, C]
+        for (t in destArchetype.type) { // e.g. [A, C] + B => [A, B, C]
             if (type.contains(t)) {
                 destRow.push(sourceRow[sourceRowIndex++]);
             } else {
@@ -232,7 +231,7 @@ class Context {
             }
         }
 
-        destinationArchetype.addRow(entity, destRow);
+        destArchetype.addRow(entity, destRow);
 
         // remove entity and components from source archetype
         archetype.deleteRow(record.row);
@@ -278,8 +277,8 @@ class Context {
 
         // point the entity record to the new archetype
         var newRecord: Record = {
-            archetype: destinationArchetype,
-            row: destinationArchetype.getRowCount() - 1
+            archetype: destArchetype,
+            row: destArchetype.getRowCount() - 1
         };
         entityIndex.set(entity, newRecord);
     }
@@ -296,24 +295,28 @@ class Context {
         }
 
         // find destination archetype
-        final destinationType = type.copy();
-        destinationType.splice(type.indexOf(componentId), 1); // TODO: Ought to use swap-remove
-        destinationType.sort((x, y) -> x - y);
-        var destinationArchetype = findOrCreateArchetype(destinationType);
+        final destType = type.copy();
+        final typeIndex = type.indexOf(componentId);
+        // swap-remove
+        destType[typeIndex] = destType[destType.length - 1];
+        destType.pop();
+        // destType.splice(type.indexOf(componentId), 1); // TODO: Ought to use swap-remove
+        destType.sort((x, y) -> x - y);
+        var destArchetype = findOrCreateArchetype(destType);
 
         // copy overlapping components from source to destination, e.g. [A, B, C] - B => [A, C]
         final sourceRow = archetype.getRow(record.row);
         final destRow = [];
         var index = 0;
         for (i => t in type) {
-            if (!destinationType.contains(t)) {
+            if (!destType.contains(t)) {
                 index++;
                 continue;
             }
             destRow.push(sourceRow[index++]);
         }
         // insert entity and components into destination archetype
-        destinationArchetype.addRow(entity, destRow);
+        destArchetype.addRow(entity, destRow);
 
         // remove entity and components from source archetype
         archetype.deleteRow(record.row); // TODO: We should probably swap the old entity down to the end of the `active` part of the array instead.
@@ -359,8 +362,8 @@ class Context {
 
         // point the entity record to the new archetype
         var newRecord: Record = {
-            archetype: destinationArchetype,
-            row: destinationArchetype.getRowCount() - 1
+            archetype: destArchetype,
+            row: destArchetype.getRowCount() - 1
         };
         entityIndex.set(entity, newRecord);
     }
