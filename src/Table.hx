@@ -1,7 +1,7 @@
 package;
 
+import Composite.Components;
 import Composite.EntityId;
-import haxe.Int32;
 import haxe.exceptions.NotImplementedException;
 
 class Table {
@@ -15,12 +15,16 @@ class Table {
         - Get the live number of rows
         - Move a row from one table to another (potentially with more or fewer columns)
      */
-    var ids: Array<EntityId>;
-    var columns: Array<Array<Any>>;
+    final ids: Array<EntityId>;
+    final type: Components; // array of component ID's
+    // final edges: Map<EntityId, Composite.Edge>;
+    final columns: Array<Array<Any>>;
 
-    public function new(numberOfColumns: Int) {
+    public function new(type: Components) {
         ids = [];
-        columns = [for (i in 0...numberOfColumns) []];
+        this.type = type;
+        // edges = [];
+        columns = [for (_ in type) []];
     }
 
     public function addRow(id: EntityId, data: Array<Any>) {
@@ -45,7 +49,7 @@ class Table {
     }
 
     public function getColumnCount(): Int {
-        return columns.length;
+        return type.length;
     }
 
     public function getRow(row: Int): Array<Any> {
