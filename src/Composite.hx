@@ -7,10 +7,6 @@ import haxe.Json;
 abstract EntityId(haxe.Int32) from Int to Int {}
 typedef Components = Array<EntityId>;
 
-// Type flags
-// final InstanceOf: EntityId = 1 << 29;
-// final ChildOf: EntityId = 2 << 28;
-
 @:autoBuild(macros.Component.buildComponent())
 extern interface Component {
     function getID(): Int;

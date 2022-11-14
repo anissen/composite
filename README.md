@@ -1,6 +1,12 @@
 # Composite
 
-A tiny entity-component-system library.
+A tiny [entity component system](https://en.wikipedia.org/wiki/Entity_component_system) library.
+
+Composite is not meant to be used directly but instead to be integrated into other libraries, frameworks or game engines. I plan to use it for some of my own projects, in particular [Cosy](https://github.com/anissen/cosy) (a programming language) and [Crafty](https://github.com/anissen/crafty) (a game engine).
+
+---
+
+_*Warning*: This project is a pre-alpha work-in-progress._
 
 ---
 
