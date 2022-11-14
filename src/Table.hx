@@ -4,7 +4,8 @@ import Composite.EntityId;
 
 /* Handle table of colums. Each column has the same number of rows. The first column is the entity id, the rest are the components. */
 class Table {
-    final ids: Array<EntityId>;
+    public final ids: Array<EntityId>; // TODO: Make this private maybe?
+
     final columns: Array<Array<Any>>;
 
     public function new(numberOfColumns: Int) {
@@ -41,14 +42,26 @@ class Table {
         return columns.length;
     }
 
-    public function getId(row: Int): EntityId {
-        if (row < 0 || row >= ids.length) throw 'row $row is out of bounds';
-        return ids[row];
+    public function getId(index: Int): EntityId {
+        if (index < 0 || index >= ids.length) throw 'row $index is out of bounds';
+        return ids[index];
     }
 
-    public function getRow(row: Int): Array<Any> {
+    public function getCell(row: Int, column: Int): Any {
         if (row < 0 || row >= ids.length) throw 'row $row is out of bounds';
-        return [for (c in columns) c[row]];
+        final rowData = columns[row];
+        if (column < 0 || column >= rowData.length) throw 'column $column is out of bounds';
+        return rowData[column];
+    }
+
+    public function getColumn(index: Int): Array<Any> {
+        if (index < 0 || index >= columns.length) throw 'column $index is out of bounds';
+        return columns[index];
+    }
+
+    public function getRow(index: Int): Array<Any> {
+        if (index < 0 || index >= ids.length) throw 'row $index is out of bounds';
+        return [for (c in columns) c[index]];
     }
 
     public function getRowCount(): Int {

@@ -41,14 +41,15 @@ class Archetype {
 
     public final id: Int = archetypeId++;
     public final type: Components; // array of component ID's
-    public final entityIds: Array<EntityId>;
-    public final columns: Array<Array<Any>>; // table of component data
+
+    public final table: Table;
+
     // public final length: Int;
     public final edges: Map<EntityId, Edge>;
 
     public function toString() {
         final edgesString = [for (k => v in edges) '$k\t=> $v'].join("\n\t\t");
-        return 'Archetype { \n\ttype: $type, \n\tentityId: $entityIds, \n\tedges: \n\t\t$edgesString} \n}';
+        return 'Archetype { \n\ttype: $type, \n\tentityId: ${table.ids}, \n\tedges: \n\t\t$edgesString} \n}';
     }
 }
 
@@ -105,8 +106,7 @@ class Context {
         entityIndex.clear();
         rootArchetype = {
             type: [],
-            entityIds: [],
-            columns: [],
+            table: new Table(0),
             // length: 0,
             edges: [],
         };
@@ -116,14 +116,17 @@ class Context {
     public function createEntity(?name: String): EntityId {
         final entityId = nextEntityId++;
 
-        final destinationArchetype = findOrCreateArchetype(name != null ? [EcsId.ID] : []);
+        var destinationArchetype: Archetype;
         if (name != null) {
-            destinationArchetype.columns[0].push(({name: name}: EcsId));
+            destinationArchetype = findOrCreateArchetype([EcsId.ID]);
+            destinationArchetype.table.addRow(entityId, [({name: name}: EcsId)]);
+        } else {
+            destinationArchetype = findOrCreateArchetype([]);
+            destinationArchetype.table.addRow(entityId, []);
         }
-        destinationArchetype.entityIds.push(entityId);
         final record: Record = {
             archetype: destinationArchetype,
-            row: destinationArchetype.entityIds.length - 1,
+            row: destinationArchetype.table.getRowCount() - 1,
         };
         entityIndex.set(entityId, record);
 
@@ -134,6 +137,7 @@ class Context {
     public function addComponent(entity: EntityId, componentData: Component, componentId: Null<EntityId> = null) {
         if (!entityIndex.exists(entity))
             throw 'entity $entity does not exist';
+
         final record = entityIndex[entity];
         final archetype = record.archetype;
         final type = archetype.type;
@@ -148,34 +152,25 @@ class Context {
         destinationType.sort((x, y) -> x - y); // TODO: It would be better to use a sorted data structure
         var destinationArchetype = findOrCreateArchetype(destinationType);
 
-        // insert entity into component array of destination
-        destinationArchetype.entityIds.push(entity);
-
         // copy overlapping components from source to destination + insert new component
-        var index = 0;
-        var newComponentInserted = false;
-        for (i => t in type) {
-            if (!newComponentInserted && t != destinationArchetype.type[i]) {
-                // trace(componentData);
-                destinationArchetype.columns[i].push(componentData); // BUG: Possible bug: should this be `index` instead of `i`?!?
-                newComponentInserted = true;
-                index++;
-                if (index >= destinationArchetype.columns.length) {
-                    break;
-                }
+        final sourceRow = archetype.table.getRow(record.row);
+        var sourceRowIndex = 0;
+        final destRow = [];
+        for (t in destinationArchetype.type) { // e.g. [A, C] + B => [A, B, C]
+            if (type.contains(t)) {
+                destRow.push(sourceRow[sourceRowIndex++]);
+            } else {
+                destRow.push(componentData);
             }
-            destinationArchetype.columns[index].push(archetype.columns[i][record.row]);
-            index++;
-        }
-        if (!newComponentInserted) {
-            destinationArchetype.columns[index].push(componentData);
         }
 
-        // remove entity from component array of source
-        archetype.entityIds.splice(record.row, 1); // TODO: We should probably swap the old entity down to the end of the `active` part of the array instead
+        destinationArchetype.table.addRow(entity, destRow);
+
+        // remove entity and components from source archetype
+        archetype.table.deleteRow(record.row);
 
         // HACK: This is slow! We want to avoid this by simply marking the removed entity as inactive.
-        for (i => e in archetype.entityIds) {
+        for (i => e in archetype.table.ids) {
             if (i < record.row)
                 continue;
             entityIndex.set(e, {
@@ -185,7 +180,7 @@ class Context {
         }
 
         // Remove source archetype if it is now empty and is a leaf in the graph
-        if (archetype.entityIds.length == 0) {
+        if (archetype.table.getRowCount() == 0) {
             // for (t => edge in archetype.edges) {
             // 	// TODO: Remove archetype from the edges of adjacent archetypes
             // 	if (edge.add != null) {
@@ -212,15 +207,11 @@ class Context {
             // 	}
             // }
         }
-        // remove components from source archetype
-        for (i => t in type) {
-            archetype.columns[i].splice(record.row, 1);
-        }
 
         // point the entity record to the new archetype
         var newRecord: Record = {
             archetype: destinationArchetype,
-            row: destinationArchetype.entityIds.length - 1
+            row: destinationArchetype.table.getRowCount() - 1
         };
         entityIndex.set(entity, newRecord);
     }
@@ -242,24 +233,25 @@ class Context {
         destinationType.sort((x, y) -> x - y);
         var destinationArchetype = findOrCreateArchetype(destinationType);
 
-        // insert entity into component array of destination
-        destinationArchetype.entityIds.push(entity);
-
-        // copy overlapping components from source to destination
+        // copy overlapping components from source to destination, e.g. [A, B, C] - B => [A, C]
+        final sourceRow = archetype.table.getRow(record.row);
+        final destRow = [];
         var index = 0;
         for (i => t in type) {
-            if (!destinationType.contains(t))
+            if (!destinationType.contains(t)) {
+                index++;
                 continue;
-            destinationArchetype.columns[index].push(archetype.columns[i][record.row]);
-            index++;
+            }
+            destRow.push(sourceRow[index++]);
         }
+        // insert entity and components into destination archetype
+        destinationArchetype.table.addRow(entity, destRow);
 
-        // remove entity from component array of source
-        archetype.entityIds.splice(record.row,
-            1); // TODO: We should probably swap the old entity down to the end of the `active` part of the array instead. Or at least to a swap-remove
+        // remove entity and components from source archetype
+        archetype.table.deleteRow(record.row); // TODO: We should probably swap the old entity down to the end of the `active` part of the array instead.
 
         // HACK: This is slow! We want to avoid this by simply marking the removed entity as inactive.
-        for (i => e in archetype.entityIds) {
+        for (i => e in archetype.table.ids) {
             if (i < record.row)
                 continue;
             entityIndex.set(e, {
@@ -269,7 +261,7 @@ class Context {
         }
 
         // Remove source archetype if it is now empty and is a leaf in the graph
-        if (archetype.entityIds.length == 0) {
+        if (archetype.table.getRowCount() == 0) {
             // for (t => edge in archetype.edges) {
             // 	// TODO: Remove archetype from the edges of adjacent archetypes
             // 	if (edge.add != null) {
@@ -296,15 +288,11 @@ class Context {
             // 	}
             // }
         }
-        // remove components from source archetype
-        for (i => _ in type) {
-            archetype.columns[i].splice(record.row, 1);
-        }
 
         // point the entity record to the new archetype
         var newRecord: Record = {
             archetype: destinationArchetype,
-            row: destinationArchetype.entityIds.length - 1
+            row: destinationArchetype.table.getRowCount() - 1
         };
         entityIndex.set(entity, newRecord);
     }
@@ -333,8 +321,7 @@ class Context {
                 newType.sort((x, y) -> x - y);
                 final newArchetype: Archetype = {
                     type: newType,
-                    entityIds: [],
-                    columns: [for (_ in newType) []],
+                    table: new Table(newType.length),
                     edges: [
                         t => {
                             add: null,
@@ -354,8 +341,10 @@ class Context {
     public function printEntity(entity: EntityId) {
         trace('entity $entity:');
         final record = entityIndex[entity];
-        for (i => component in record.archetype.columns) {
-            trace('    #$i: ${component[record.row]}');
+        final archetype = record.archetype;
+        final row = record.row;
+        for (i => component in archetype.table.getRow(row)) {
+            trace('    #$i: $component');
         }
     }
 
@@ -372,7 +361,7 @@ class Context {
         function println(s: String) {
             #if sys Sys.println(s); #else trace(s); #end
         }
-        println('"${node.type}${node.id}" [label="${node.type} (entities: ${node.entityIds.length})"];');
+        println('"${node.type}${node.id}" [label="${node.type} (entities: ${node.table.getRowCount()})"];');
         for (t => edge in node.edges) {
             if (edge != null && edge.add != null) {
                 println('"${node.type}${node.id}" -> "${edge.add.type}${edge.add.id}" [label="add ${t}"];');
@@ -391,7 +380,7 @@ class Context {
         final type = archetype.type;
         for (i => t in type) {
             if (t == componentId)
-                return archetype.columns[i][record.row];
+                return archetype.table.getCell(record.row, i);
         }
         return null;
     }
@@ -399,12 +388,7 @@ class Context {
     public function getComponentsForEntity(entity: EntityId): Array<Any> {
         final record = entityIndex[entity];
         final archetype = record.archetype;
-        final type = archetype.type;
-        final components = [];
-        for (i => _ in type) {
-            components.push(archetype.columns[i][record.row]);
-        }
-        return components;
+        return archetype.table.getRow(record.row);
     }
 
     function getArchetypesWithComponent(componentId: EntityId): Array<Archetype> {
@@ -502,7 +486,8 @@ class Context {
         for (i => term in parsed.includes) {
             for (archetype in archetypes) {
                 // TODO: Could we avoid creating and copying arrays here? Maybe allow `fn` to index into the component arrays of the different archetypes?
-                componentsForTerms[i] = componentsForTerms[i].concat(archetype.columns[archetype.type.indexOf(term)]);
+                final termData = archetype.table.getColumn(archetype.type.indexOf(term));
+                componentsForTerms[i] = componentsForTerms[i].concat(termData);
             }
         }
         // trace('componentsForTerms: $componentsForTerms');
@@ -514,7 +499,7 @@ class Context {
         final archetypes = queryArchetypes(parsed.includes, parsed.excludes);
         return Lambda.flatten([
             for (node in archetypes) {
-                node.entityIds;
+                node.table.ids;
             }
         ]);
     }
@@ -529,18 +514,14 @@ class Context {
         var queue = [rootArchetype];
         while (queue.length != 0) {
             final node = queue.pop();
-            if (node.entityIds.length != 0) {
-                final entityData = [];
-                final type = node.type;
-                for (e in 0...node.entityIds.length) {
-                    final componentData = [];
-                    for (t => _ in type) {
-                        componentData.push(node.columns[t][e]);
+            if (node.table.getRowCount() != 0) {
+                final entityData = [
+                    for (i in 0...node.table.getRowCount()) {
+                        node.table.getRow(i);
                     }
-                    entityData.push(componentData);
-                }
+                ]
                 data.push({
-                    type: type,
+                    type: node.type,
                     components: entityData,
                 });
             }
