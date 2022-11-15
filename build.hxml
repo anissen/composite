@@ -8,8 +8,12 @@
 
 # --run examples.Playground
 
---main examples.canvas.Canvas
---js examples/canvas/canvas.js
+# --main examples.canvas.Canvas
+# --js examples/canvas/canvas.js
+
+--main examples.spaceshooter.Spaceshooter
+--js examples/spaceshooter/spaceshooter.js
+
 -D js-es=6
 -D analyzer-user-var-fusion
 -lib utest

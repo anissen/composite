@@ -558,6 +558,21 @@ class Context {
         fn(componentsForTerms);
     }
 
+    public function queryEach(expression: Expression, fn: (components: Array<Any>) -> Void) {
+        query(expression, (components) -> {
+            if (components.length == 0) return;
+            final rows = (components[0]: Array<Any>).length;
+            for (rowIndex in 0...rows) {
+                final row = [];
+                for (c in components) {
+                    final column: Array<Any> = c;
+                    row.push(column[rowIndex]);
+                }
+                fn(row);
+            }
+        });
+    }
+
     public function getEntitiesWithComponents(expression: Expression): Array<EntityId> {
         final parsed = parseExpression(expression);
         final archetypes = queryArchetypes(parsed.includes, parsed.excludes);
