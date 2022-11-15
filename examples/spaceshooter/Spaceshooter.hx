@@ -109,6 +109,57 @@ inline function init() {
 
 function update() {
     shootX(context.getEntitiesWithComponents(Group([Include(CanShoot.ID), Exclude(Player.ID)])));
+
+    // update positions from velocities
+    context.query(Group([Include(Position.ID), Include(Velocity.ID), Include(SquareRendering.ID)]), (components) -> {
+        final position: Array<Position> = components[0];
+        final velocity: Array<Velocity> = components[1];
+        final square: Array<SquareRendering> = components[2];
+        for (i in 0...position.length) {
+            position[i].x += velocity[i].x * delta;
+            position[i].y += velocity[i].y * delta;
+            if (position[i].x < 0 || position[i].x > width) {
+                velocity[i].x = -velocity[i].x;
+                square[i].turns = Math.atan2(velocity[i].y, velocity[i].x) / (Math.PI * 2);
+            }
+            if (position[i].y < 0 || position[i].y > height) {
+                velocity[i].y = -velocity[i].y;
+                square[i].turns = Math.atan2(velocity[i].y, velocity[i].x) / (Math.PI * 2);
+            }
+        }
+    });
+    context.query(Group([Include(Position.ID), Include(Velocity.ID), Exclude(SquareRendering.ID)]), (components) -> {
+        final position: Array<Position> = components[0];
+        final velocity: Array<Velocity> = components[1];
+        for (i in 0...position.length) {
+            position[i].x += velocity[i].x * delta;
+            position[i].y += velocity[i].y * delta;
+            if (position[i].x < 0 || position[i].x > width) {
+                velocity[i].x = -velocity[i].x;
+            }
+            if (position[i].y < 0 || position[i].y > height) {
+                velocity[i].y = -velocity[i].y;
+            }
+        }
+    });
+
+    // update tail
+    context.query(Group([Include(Position.ID), Include(Tail.ID)]), (components) -> {
+        final positions: Array<Position> = components[0];
+        final tails: Array<Tail> = components[1];
+        for (i in 0...positions.length) {
+            final tail = tails[i];
+            tail.time_left -= delta;
+            if (tail.time_left <= 0) {
+                tail.time_left = 0.025;
+                if (tail.positions.length > tail.length) {
+                    tail.positions.shift();
+                }
+                final pos = positions[i];
+                tail.positions.push({x: pos.x, y: pos.y});
+            }
+        }
+    });
 }
 
 function createPlayer(pos: Position) {
@@ -117,14 +168,16 @@ function createPlayer(pos: Position) {
     context.addComponent(player, pos);
     context.addComponent(player, ({size: 20, turns: -1 / 4}: SquareRendering));
     context.addComponent(player, ({color: '#' + StringTools.hex(Math.floor(Math.random() * 16777215))}: Color));
-    context.addComponent(player, ({shoot_cooldown: 0.2, time_left: 0.2}: CanShoot));
+    context.addComponent(player, ({shoot_cooldown: 0.01, time_left: 0.2}: CanShoot));
 }
 
 function createEnemy() {
     final enemy = context.createEntity('Enemy');
     context.addComponent(enemy, ({x: Math.random() * width, y: 50}: Position));
-    context.addComponent(enemy, ({x: 0, y: 50}: Velocity));
-    context.addComponent(enemy, ({size: 40, turns: 1 / 4}: SquareRendering));
+    final turns = Math.random();
+    final angle = turns * Math.PI * 2;
+    context.addComponent(enemy, ({size: 40, turns: turns}: SquareRendering));
+    context.addComponent(enemy, ({x: Math.cos(angle) * 50, y: Math.sin(angle) * 50}: Velocity));
     context.addComponent(enemy, ({color: '#' + StringTools.hex(Math.floor(Math.random() * 16777215))}: Color));
     context.addComponent(enemy, ({shoot_cooldown: 2.0, time_left: 5.0}: CanShoot));
 
@@ -229,40 +282,6 @@ function shootX(entities: Array<EntityId>) {
 function draw(context: Composite.Context, ctx: CanvasRenderingContext2D) {
     ctx.fillStyle = 'white';
     ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-
-    // update positions from velocities
-    context.query(Group([Include(Position.ID), Include(Velocity.ID)]), (components) -> {
-        final position: Array<Position> = components[0];
-        final velocity: Array<Velocity> = components[1];
-        for (i in 0...position.length) {
-            position[i].x += velocity[i].x * delta;
-            position[i].y += velocity[i].y * delta;
-            if (position[i].x < 0 || position[i].x > ctx.canvas.width) {
-                velocity[i].x = -velocity[i].x;
-            }
-            if (position[i].y < 0 || position[i].y > ctx.canvas.height) {
-                velocity[i].y = -velocity[i].y;
-            }
-        }
-    });
-
-    // update tail
-    context.query(Group([Include(Position.ID), Include(Tail.ID)]), (components) -> {
-        final positions: Array<Position> = components[0];
-        final tails: Array<Tail> = components[1];
-        for (i in 0...positions.length) {
-            final tail = tails[i];
-            tail.time_left -= delta;
-            if (tail.time_left <= 0) {
-                tail.time_left = 0.025;
-                if (tail.positions.length > tail.length) {
-                    tail.positions.shift();
-                }
-                final pos = positions[i];
-                tail.positions.push({x: pos.x, y: pos.y});
-            }
-        }
-    });
 
     // render tail
     context.query(Group([Include(Tail.ID), Include(Color.ID)]), (components) -> {
