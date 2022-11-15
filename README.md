@@ -16,7 +16,6 @@ _*Warning*: This project is a pre-alpha work-in-progress._
 
 ## TODO's
 
-- [ ] Fix tests for `Archetype` instead of `Table` and delete `Table.hx`
 - [ ] Try using it from a simple game like setting
 - [ ] Try using it from Crafty
 - [ ] Do some benchmarks
