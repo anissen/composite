@@ -86,10 +86,10 @@ class Archetype {
     }
 
     public function getCell(row: Int, column: Int): Any {
-        if (row < 0 || row >= ids.length) throw 'row $row is out of bounds';
-        final rowData = columns[row];
-        if (column < 0 || column >= rowData.length) throw 'column $column is out of bounds';
-        return rowData[column];
+        if (column < 0 || column >= columns.length) throw 'column $column is out of bounds';
+        final rowData = columns[column];
+        if (row < 0 || row >= rowData.length) throw 'row $row is out of bounds';
+        return rowData[row];
     }
 
     public function getColumn(index: Int): Array<Any> {

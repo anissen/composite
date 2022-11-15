@@ -12,7 +12,6 @@ _*Warning*: This project is a pre-alpha work-in-progress._
 
 ## Bugs
 
-- In the canvas example, trying to `getComponent` on the first circle throws an exception (`column 1 is out of bounds`)
 
 ## TODO's
 
