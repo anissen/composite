@@ -45,10 +45,21 @@ final class Tail implements Composite.Component {
     public var time_left: Float;
 }
 
+@:structInit
+final class CanShoot implements Composite.Component {
+    public var shoot_cooldown: Float;
+    public var time_left: Float;
+}
+
 final context = new Composite.Context();
 var entityCount = 0;
 final width = 600;
 final height = 600;
+final moveSpeed = 500.0;
+final turnSpeed = 1.0;
+final shootSpeed = 250.0;
+final keysPressed = new Map<String, Bool>();
+var delta = 0.0;
 
 inline function main() {
     var timeAtLastUpdate = 0.0;
@@ -62,9 +73,11 @@ inline function main() {
 
     final ctx = canvas.getContext2d();
     function animate(time: Float) {
-        final delta = (time - timeAtLastUpdate) / 1000.0;
+        delta = (time - timeAtLastUpdate) / 1000.0;
         timeAtLastUpdate = time;
-        draw(context, ctx, delta);
+        handleInput();
+        update();
+        draw(context, ctx);
         Browser.window.requestAnimationFrame(animate);
     }
     Browser.window.requestAnimationFrame(animate);
@@ -76,14 +89,54 @@ inline function main() {
     createPlayer({x: width / 2, y: height - 100});
     // createPlayer({x: width / 2 + 100, y: height - 200});
 
-    Browser.window.setTimeout(() -> {
+    Browser.window.setInterval(() -> {
         createEnemy();
     }, 3000);
 
-    final moveSpeed = 10;
-    final turnSpeed = 0.01;
     Browser.window.onkeydown = (event -> {
-        switch event.key {
+        keysPressed[event.key] = true;
+        // event.preventDefault();
+    });
+    Browser.window.onkeyup = (event -> {
+        keysPressed[event.key] = false;
+        // event.preventDefault();
+    });
+}
+
+inline function init() {
+    // placeholder
+}
+
+function update() {
+    shootX(context.getEntitiesWithComponents(Group([Include(CanShoot.ID), Exclude(Player.ID)])));
+}
+
+function createPlayer(pos: Position) {
+    final player = context.createEntity('Player');
+    context.addComponent(player, ({}: Player));
+    context.addComponent(player, pos);
+    context.addComponent(player, ({size: 20, turns: -1 / 4}: SquareRendering));
+    context.addComponent(player, ({color: '#' + StringTools.hex(Math.floor(Math.random() * 16777215))}: Color));
+    context.addComponent(player, ({shoot_cooldown: 0.2, time_left: 0.2}: CanShoot));
+}
+
+function createEnemy() {
+    final enemy = context.createEntity('Enemy');
+    context.addComponent(enemy, ({x: Math.random() * width, y: 50}: Position));
+    context.addComponent(enemy, ({x: 0, y: 50}: Velocity));
+    context.addComponent(enemy, ({size: 40, turns: 1 / 4}: SquareRendering));
+    context.addComponent(enemy, ({color: '#' + StringTools.hex(Math.floor(Math.random() * 16777215))}: Color));
+    context.addComponent(enemy, ({shoot_cooldown: 2.0, time_left: 5.0}: CanShoot));
+
+    // Browser.window.setInterval(() -> {
+    //     shootX([enemy]);
+    // }, 3000);
+}
+
+function handleInput() {
+    for (key => pressed in keysPressed) {
+        if (!pressed) continue;
+        switch key {
             case 'ArrowUp': move(moveSpeed);
             case 'ArrowDown': move(-moveSpeed);
             case 'ArrowRight': turn(turnSpeed);
@@ -91,6 +144,7 @@ inline function main() {
             case ' ': shoot();
             case 'r':
                 trace('reset');
+                keysPressed.clear();
                 context.clear();
             case 's':
                 trace('save');
@@ -106,34 +160,9 @@ inline function main() {
             case 'p':
                 trace('print');
                 context.printArchetypeGraph(context.rootArchetype);
-            case _: trace(event);
+            case _:
         }
-    });
-}
-
-inline function init() {
-    // placeholder
-}
-
-function createPlayer(pos: Position) {
-    final player = context.createEntity('Player');
-    context.addComponent(player, ({}: Player));
-    context.addComponent(player, pos);
-    context.addComponent(player, ({size: 20, turns: -1 / 4}: SquareRendering));
-    context.addComponent(player, ({color: '#' + StringTools.hex(Math.floor(Math.random() * 16777215))}: Color));
-}
-
-function createEnemy() {
-    // trace('create enemy!');
-    final enemy = context.createEntity('Enemy');
-    context.addComponent(enemy, ({x: Math.random() * width, y: 50}: Position));
-    context.addComponent(enemy, ({x: 0, y: 0.5}: Velocity));
-    context.addComponent(enemy, ({size: 40, turns: 1 / 4}: SquareRendering));
-    context.addComponent(enemy, ({color: '#' + StringTools.hex(Math.floor(Math.random() * 16777215))}: Color));
-
-    Browser.window.setTimeout(() -> {
-        shootX([enemy]);
-    }, 3000);
+    }
 }
 
 function move(speed: Float) {
@@ -142,9 +171,8 @@ function move(speed: Float) {
         final square: SquareRendering = components[2];
         final size = square.size;
         final angle = square.turns * Math.PI * 2;
-        // TODO: delta is missing
-        pos.x += Math.cos(angle) * speed;
-        pos.y += Math.sin(angle) * speed;
+        pos.x += Math.cos(angle) * speed * delta;
+        pos.y += Math.sin(angle) * speed * delta;
         if (pos.x < size / 2) pos.x = size / 2;
         if (pos.x > width - size / 2) pos.x = width - size / 2;
         if (pos.y < size / 2) pos.y = size / 2;
@@ -155,12 +183,12 @@ function move(speed: Float) {
 function turn(speed: Float) {
     context.queryEach(Group([Include(Player.ID), Include(SquareRendering.ID)]), (components) -> {
         final square: SquareRendering = components[1];
-        square.turns += speed; // TODO: delta is missing
+        square.turns += speed * delta;
     });
 }
 
 function shoot() {
-    shootX(context.getEntitiesWithComponents(Include(Player.ID)));
+    shootX(context.getEntitiesWithComponents(Group([Include(Player.ID), Include(CanShoot.ID)])));
     // context.queryEach(Group([Include(Player.ID), Include(Position.ID), Include(SquareRendering.ID)]), (components) -> {
     //     final e = context.createEntity('shot entity ' + entityCount++);
     //     final pos: Position = components[1];
@@ -178,6 +206,12 @@ function shoot() {
 
 function shootX(entities: Array<EntityId>) {
     for (e in entities) {
+        final canShoot: CanShoot = context.getComponent(e, CanShoot.ID);
+        canShoot.time_left -= delta;
+        if (canShoot.time_left > 0) continue;
+
+        canShoot.time_left = canShoot.shoot_cooldown;
+
         final pos: Position = context.getComponent(e, Position.ID);
         final square: SquareRendering = context.getComponent(e, SquareRendering.ID);
         final size = square.size;
@@ -185,14 +219,14 @@ function shootX(entities: Array<EntityId>) {
 
         final e = context.createEntity('shot entity ' + entityCount++);
         context.addComponent(e, ({x: pos.x + Math.cos(angle) * size / 2, y: pos.y + Math.sin(angle) * size / 2}: Position));
-        context.addComponent(e, ({x: Math.cos(angle), y: Math.sin(angle)}: Velocity));
+        context.addComponent(e, ({x: Math.cos(angle) * shootSpeed, y: Math.sin(angle) * shootSpeed}: Velocity));
         context.addComponent(e, ({color: '#' + StringTools.hex(Math.floor(Math.random() * 16777215))}: Color));
         context.addComponent(e, ({radius: 5 + Math.random() * 5}: CircleRendering));
         context.addComponent(e, ({length: 10 + Math.floor(Math.random() * 10), positions: [], time_left: 0}: Tail));
     }
 }
 
-function draw(context: Composite.Context, ctx: CanvasRenderingContext2D, dt: Float) {
+function draw(context: Composite.Context, ctx: CanvasRenderingContext2D) {
     ctx.fillStyle = 'white';
     ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 
@@ -201,8 +235,8 @@ function draw(context: Composite.Context, ctx: CanvasRenderingContext2D, dt: Flo
         final position: Array<Position> = components[0];
         final velocity: Array<Velocity> = components[1];
         for (i in 0...position.length) {
-            position[i].x += velocity[i].x;
-            position[i].y += velocity[i].y;
+            position[i].x += velocity[i].x * delta;
+            position[i].y += velocity[i].y * delta;
             if (position[i].x < 0 || position[i].x > ctx.canvas.width) {
                 velocity[i].x = -velocity[i].x;
             }
@@ -218,7 +252,7 @@ function draw(context: Composite.Context, ctx: CanvasRenderingContext2D, dt: Flo
         final tails: Array<Tail> = components[1];
         for (i in 0...positions.length) {
             final tail = tails[i];
-            tail.time_left -= dt;
+            tail.time_left -= delta;
             if (tail.time_left <= 0) {
                 tail.time_left = 0.025;
                 if (tail.positions.length > tail.length) {
@@ -273,6 +307,7 @@ function draw(context: Composite.Context, ctx: CanvasRenderingContext2D, dt: Flo
             final color = colors[i].color;
 
             // draw line
+            ctx.strokeStyle = 'black';
             ctx.beginPath();
             ctx.moveTo(pos.x, pos.y);
             ctx.lineTo(pos.x + Math.cos(rotation) * 50, pos.y + Math.sin(rotation) * 50);
@@ -285,16 +320,13 @@ function draw(context: Composite.Context, ctx: CanvasRenderingContext2D, dt: Flo
             ctx.translate(-pos.x, -pos.y);
 
             ctx.fillStyle = color;
+            ctx.strokeStyle = 'black';
             ctx.beginPath();
             ctx.rect(pos.x - size / 2, pos.y - size / 2, size, size);
             ctx.fill();
+            ctx.stroke();
 
             ctx.restore();
-
-            // ctx.fillStyle = color;
-            // ctx.beginPath();
-            // ctx.rect(pos.x - size / 2, pos.y - size / 2, size, size);
-            // ctx.fill();
         }
     });
 }
