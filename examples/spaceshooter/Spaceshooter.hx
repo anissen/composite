@@ -160,6 +160,19 @@ function update() {
             }
         }
     });
+
+    // check for bullet vs. ship collisions
+    // context.queryEach(Group([Include(Position.ID), Include(CircleRendering.ID)]), (components) -> {
+    //     context.queryEach(Group([Include(Position.ID), Include(SquareRendering.ID)]), (components2) -> {
+    //         final pos1: Position = components[0];
+    //         final circle: CircleRendering = components[1];
+    //         final pos2: Position = components2[0];
+    //         final square: SquareRendering = components2[1];
+    //         if (Math.sqrt(Math.pow(pos1.x - pos2.x, 2) + Math.pow(pos1.y - pos2.y, 2)) < circle.radius + square.size / 2) {
+    //             trace('dead!');
+    //         }
+    //     });
+    // });
 }
 
 function createPlayer(pos: Position) {
@@ -271,7 +284,7 @@ function shootX(entities: Array<EntityId>) {
         final angle = square.turns * Math.PI * 2;
 
         final e = context.createEntity('shot entity ' + entityCount++);
-        context.addComponent(e, ({x: pos.x + Math.cos(angle) * size / 2, y: pos.y + Math.sin(angle) * size / 2}: Position));
+        context.addComponent(e, ({x: pos.x + Math.cos(angle) * size, y: pos.y + Math.sin(angle) * size}: Position));
         context.addComponent(e, ({x: Math.cos(angle) * shootSpeed, y: Math.sin(angle) * shootSpeed}: Velocity));
         context.addComponent(e, ({color: '#' + StringTools.hex(Math.floor(Math.random() * 16777215))}: Color));
         context.addComponent(e, ({radius: 5 + Math.random() * 5}: CircleRendering));
@@ -329,7 +342,7 @@ function draw(context: Composite.Context, ctx: CanvasRenderingContext2D) {
             ctx.strokeStyle = 'black';
             ctx.beginPath();
             ctx.moveTo(pos.x, pos.y);
-            ctx.lineTo(pos.x + Math.cos(rotation) * 50, pos.y + Math.sin(rotation) * 50);
+            ctx.lineTo(pos.x + Math.cos(rotation) * 20, pos.y + Math.sin(rotation) * 20);
             ctx.stroke();
 
             // draw square
