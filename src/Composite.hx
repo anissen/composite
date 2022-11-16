@@ -196,6 +196,12 @@ class Context {
         return entityId;
     }
 
+    public function addComponents(entity: EntityId, ...components: Component) {
+        for (c in components) {
+            addComponent(entity, c);
+        }
+    }
+
     // TODO: Should probably be `setComponent`
     public function addComponent(entity: EntityId, componentData: Component, componentId: Null<EntityId> = null) {
         if (!entityIndex.exists(entity))
@@ -542,11 +548,15 @@ class Context {
         return result;
     }
 
-    public function query(expression: Expression, fn: (components: Array<Any>) -> Void) {
+    public function query(expression: Expression, fn: (entities: Array<EntityId>, components: Array<Any>) -> Void) {
         final parsed = parseExpression(expression);
         final componentsForTerms = [for (_ in parsed.includes) []];
         final archetypes = queryArchetypes(parsed.includes, parsed.excludes);
+        var entities = [];
 
+        for (archetype in archetypes) {
+            entities = entities.concat(archetype.ids); // TODO: Not very elegant!
+        }
         for (i => term in parsed.includes) {
             for (archetype in archetypes) {
                 // TODO: Could we avoid creating and copying arrays here? Maybe allow `fn` to index into the component arrays of the different archetypes?
@@ -555,20 +565,20 @@ class Context {
             }
         }
         // trace('componentsForTerms: $componentsForTerms');
-        fn(componentsForTerms);
+        fn(entities, componentsForTerms);
     }
 
-    public function queryEach(expression: Expression, fn: (components: Array<Any>) -> Void) {
-        query(expression, (components) -> {
-            if (components.length == 0) return;
-            final rows = (components[0]: Array<Any>).length;
+    public function queryEach(expression: Expression, fn: (entity: EntityId, components: Array<Any>) -> Void) {
+        query(expression, (entities, components) -> {
+            if (entities.length == 0) return;
+            final rows = entities.length;
             for (rowIndex in 0...rows) {
                 final row = [];
                 for (c in components) {
                     final column: Array<Any> = c;
                     row.push(column[rowIndex]);
                 }
-                fn(row);
+                fn(entities[rowIndex], row);
             }
         });
     }

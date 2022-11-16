@@ -109,60 +109,42 @@ function update() {
     shootX(context.getEntitiesWithComponents(Group([Include(CanShoot.ID), Exclude(Player.ID)])));
 
     // update positions from velocities
-    context.query(Group([Include(Position.ID), Include(Velocity.ID), Include(SquareRendering.ID)]), (components) -> {
-        final position: Array<Position> = components[0];
-        final velocity: Array<Velocity> = components[1];
-        final square: Array<SquareRendering> = components[2];
-        for (i in 0...position.length) {
-            position[i].x += velocity[i].x * delta;
-            position[i].y += velocity[i].y * delta;
-            if (position[i].x < 0 || position[i].x > width) {
-                velocity[i].x = -velocity[i].x;
-                square[i].turns = Math.atan2(velocity[i].y, velocity[i].x) / (Math.PI * 2);
-            }
-            if (position[i].y < 0 || position[i].y > height) {
-                velocity[i].y = -velocity[i].y;
-                square[i].turns = Math.atan2(velocity[i].y, velocity[i].x) / (Math.PI * 2);
-            }
+    context.queryEach(Group([Include(Position.ID), Include(Velocity.ID)]), (entity, components) -> {
+        final pos: Position = components[0];
+        final vel: Velocity = components[1];
+        pos.x += vel.x * delta;
+        pos.y += vel.y * delta;
+        var bounced = false;
+        if (pos.x < 0 || pos.x > width) {
+            vel.x = -vel.x;
+            bounced = true;
         }
-    });
-
-    // TODO: Remove this when the entity is available in the query (`contect.hasComponent(SquareRendering.ID))`)
-    context.query(Group([Include(Position.ID), Include(Velocity.ID), Exclude(SquareRendering.ID)]), (components) -> {
-        final position: Array<Position> = components[0];
-        final velocity: Array<Velocity> = components[1];
-        for (i in 0...position.length) {
-            position[i].x += velocity[i].x * delta;
-            position[i].y += velocity[i].y * delta;
-            if (position[i].x < 0 || position[i].x > width) {
-                velocity[i].x = -velocity[i].x;
-            }
-            if (position[i].y < 0 || position[i].y > height) {
-                velocity[i].y = -velocity[i].y;
-            }
+        if (pos.y < 0 || pos.y > height) {
+            vel.y = -vel.y;
+            bounced = true;
+        }
+        if (bounced && context.hasComponent(entity, SquareRendering.ID)) {
+            final square: SquareRendering = context.getComponent(entity, SquareRendering.ID);
+            square.turns = Math.atan2(vel.y, vel.x) / (Math.PI * 2);
         }
     });
 
     // update tail
-    context.query(Group([Include(Position.ID), Include(Tail.ID)]), (components) -> {
-        final positions: Array<Position> = components[0];
-        final tails: Array<Tail> = components[1];
-        for (i in 0...positions.length) {
-            final tail = tails[i];
-            tail.time_left -= delta;
-            if (tail.time_left <= 0) {
-                tail.time_left = 0.025;
-                if (tail.positions.length > tail.length) {
-                    tail.positions.shift();
-                }
-                final pos = positions[i];
-                tail.positions.push({x: pos.x, y: pos.y});
+    context.queryEach(Group([Include(Position.ID), Include(Tail.ID)]), (entity, components) -> {
+        final pos: Position = components[0];
+        final tail: Tail = components[1];
+        tail.time_left -= delta;
+        if (tail.time_left <= 0) {
+            tail.time_left = 0.025;
+            if (tail.positions.length > tail.length) {
+                tail.positions.shift();
             }
+            tail.positions.push({x: pos.x, y: pos.y});
         }
     });
 
     // check for bullet vs. ship collisions
-    // context.queryEach(Group([Include(Position.ID), Include(CircleRendering.ID)]), (components) -> {
+    // context.queryEach(Group([Include(Position.ID), Include(CircleRendering.ID)]), (entity, components) -> {
     //     context.queryEach(Group([Include(Position.ID), Include(SquareRendering.ID)]), (components2) -> {
     //         final pos1: Position = components[0];
     //         final circle: CircleRendering = components[1];
@@ -231,7 +213,7 @@ function handleInput() {
 }
 
 function move(speed: Float) {
-    context.queryEach(Group([Include(Player.ID), Include(Position.ID), Include(SquareRendering.ID)]), (components) -> {
+    context.queryEach(Group([Include(Player.ID), Include(Position.ID), Include(SquareRendering.ID)]), (entity, components) -> {
         final pos: Position = components[1];
         final square: SquareRendering = components[2];
         final size = square.size;
@@ -246,7 +228,7 @@ function move(speed: Float) {
 }
 
 function turn(speed: Float) {
-    context.queryEach(Group([Include(Player.ID), Include(SquareRendering.ID)]), (components) -> {
+    context.queryEach(Group([Include(Player.ID), Include(SquareRendering.ID)]), (entity, components) -> {
         final square: SquareRendering = components[1];
         square.turns += speed * delta;
     });
@@ -283,7 +265,7 @@ function draw(context: Composite.Context, ctx: CanvasRenderingContext2D) {
     ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 
     // render tail
-    context.queryEach(Group([Include(Tail.ID), Include(Color.ID)]), (components) -> {
+    context.queryEach(Group([Include(Tail.ID), Include(Color.ID)]), (entity, components) -> {
         final tail: Tail = components[0];
         final color: Color = components[1];
 
@@ -296,7 +278,7 @@ function draw(context: Composite.Context, ctx: CanvasRenderingContext2D) {
     });
 
     // render circles
-    context.queryEach(Group([Include(Position.ID), Include(CircleRendering.ID), Include(Color.ID)]), (components) -> {
+    context.queryEach(Group([Include(Position.ID), Include(CircleRendering.ID), Include(Color.ID)]), (entity, components) -> {
         final pos: Position = components[0];
         final circle: CircleRendering = components[1];
         final color: Color = components[2];
@@ -307,7 +289,7 @@ function draw(context: Composite.Context, ctx: CanvasRenderingContext2D) {
     });
 
     // render squares
-    context.queryEach(Group([Include(Position.ID), Include(SquareRendering.ID), Include(Color.ID)]), (components) -> {
+    context.queryEach(Group([Include(Position.ID), Include(SquareRendering.ID), Include(Color.ID)]), (entity, components) -> {
         final pos: Position = components[0];
         final square: SquareRendering = components[1];
         final color: Color = components[2];
