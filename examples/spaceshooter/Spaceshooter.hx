@@ -62,6 +62,10 @@ final keysPressed = new Map<String, Bool>();
 var paused = false;
 var delta = 0.0;
 
+// enemy spawn properties
+final enemyCoolDown_s = 3.0;
+var enemyTimeLeft_s = 1.0;
+
 inline function main() {
     var timeAtLastUpdate = 0.0;
     final canvas = document.createCanvasElement();
@@ -103,6 +107,12 @@ inline function init() {
 }
 
 function update() {
+    enemyTimeLeft_s -= delta;
+    if (enemyTimeLeft_s < 0) {
+        enemyTimeLeft_s = enemyCoolDown_s;
+        createEnemy();
+    }
+
     shootX(context.getEntitiesWithComponents(Group([Include(CanShoot.ID), Exclude(Player.ID)])));
 
     // update positions from velocities
@@ -176,7 +186,9 @@ function createPlayer(pos: Position) {
     context.addComponent(player, pos);
     context.addComponent(player, ({size: 20, turns: -1 / 4}: SquareRendering));
     context.addComponent(player, ({color: '#' + StringTools.hex(Math.floor(Math.random() * 16777215))}: Color));
-    context.addComponent(player, ({shoot_cooldown: 0.01, time_left: 0.2}: CanShoot));
+    context.addComponent(player, ({shoot_cooldown: 0.1, time_left: 0.0}: CanShoot));
+    // context.addComponents(player, ({}: Player), pos, ({size: 20, turns: -1 / 4}: SquareRendering),
+    //     ({color: '#' + StringTools.hex(Math.floor(Math.random() * 16777215))}: Color), ({shoot_cooldown: 0.01, time_left: 0.2}: CanShoot));
 }
 
 function createEnemy() {
@@ -188,10 +200,6 @@ function createEnemy() {
     context.addComponent(enemy, ({x: Math.cos(angle) * 50, y: Math.sin(angle) * 50}: Velocity));
     context.addComponent(enemy, ({color: '#' + StringTools.hex(Math.floor(Math.random() * 16777215))}: Color));
     context.addComponent(enemy, ({shoot_cooldown: 2.0, time_left: 5.0}: CanShoot));
-
-    // Browser.window.setInterval(() -> {
-    //     shootX([enemy]);
-    // }, 3000);
 }
 
 function handleInput() {
