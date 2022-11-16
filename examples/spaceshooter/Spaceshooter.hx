@@ -297,69 +297,56 @@ function draw(context: Composite.Context, ctx: CanvasRenderingContext2D) {
     ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 
     // render tail
-    context.query(Group([Include(Tail.ID), Include(Color.ID)]), (components) -> {
-        final tails: Array<Tail> = components[0];
-        final colors: Array<Color> = components[1];
-        for (i in 0...tails.length) {
-            final tail = tails[i];
-            final color = colors[i].color;
+    context.queryEach(Group([Include(Tail.ID), Include(Color.ID)]), (components) -> {
+        final tail: Tail = components[0];
+        final color: Color = components[1];
 
-            ctx.fillStyle = color;
-            for (tailPos in tail.positions) {
-                ctx.beginPath();
-                ctx.arc(tailPos.x, tailPos.y, 2, 0, Math.PI * 2);
-                ctx.fill();
-            }
-        }
-    });
-
-    context.query(Group([Include(Position.ID), Include(CircleRendering.ID), Include(Color.ID)]), (components) -> {
-        final position: Array<Position> = components[0];
-        final circle: Array<CircleRendering> = components[1];
-        final colors: Array<Color> = components[2];
-        for (i in 0...position.length) {
-            final pos = position[i];
-            final radius = circle[i].radius;
-            final color = colors[i].color;
-            ctx.fillStyle = color;
+        ctx.fillStyle = color.color;
+        for (pos in tail.positions) {
             ctx.beginPath();
-            ctx.arc(pos.x, pos.y, radius, 0, Math.PI * 2);
+            ctx.arc(pos.x, pos.y, 2, 0, Math.PI * 2);
             ctx.fill();
         }
     });
 
-    context.query(Group([Include(Position.ID), Include(SquareRendering.ID), Include(Color.ID)]), (components) -> {
-        final position: Array<Position> = components[0];
-        final square: Array<SquareRendering> = components[1];
-        final colors: Array<Color> = components[2];
-        for (i in 0...position.length) {
-            final pos = position[i];
-            final size = square[i].size;
-            final rotation = square[i].turns * Math.PI * 2;
-            final color = colors[i].color;
+    context.queryEach(Group([Include(Position.ID), Include(CircleRendering.ID), Include(Color.ID)]), (components) -> {
+        final pos: Position = components[0];
+        final circle: CircleRendering = components[1];
+        final color: Color = components[2];
+        ctx.fillStyle = color.color;
+        ctx.beginPath();
+        ctx.arc(pos.x, pos.y, circle.radius, 0, Math.PI * 2);
+        ctx.fill();
+    });
 
-            // draw line
-            ctx.strokeStyle = 'black';
-            ctx.beginPath();
-            ctx.moveTo(pos.x, pos.y);
-            ctx.lineTo(pos.x + Math.cos(rotation) * 20, pos.y + Math.sin(rotation) * 20);
-            ctx.stroke();
+    context.queryEach(Group([Include(Position.ID), Include(SquareRendering.ID), Include(Color.ID)]), (components) -> {
+        final pos: Position = components[0];
+        final square: SquareRendering = components[1];
+        final color: Color = components[2];
+        final size = square.size;
+        final rotation = square.turns * Math.PI * 2;
 
-            // draw square
-            ctx.save();
-            ctx.translate(pos.x, pos.y);
-            ctx.rotate(rotation);
-            ctx.translate(-pos.x, -pos.y);
+        // draw line
+        ctx.strokeStyle = 'black';
+        ctx.beginPath();
+        ctx.moveTo(pos.x, pos.y);
+        ctx.lineTo(pos.x + Math.cos(rotation) * (size / 2 + 20), pos.y + Math.sin(rotation) * (size / 2 + 20));
+        ctx.stroke();
 
-            ctx.fillStyle = color;
-            ctx.strokeStyle = 'black';
-            ctx.beginPath();
-            ctx.rect(pos.x - size / 2, pos.y - size / 2, size, size);
-            ctx.fill();
-            ctx.stroke();
+        // draw square
+        ctx.save();
+        ctx.translate(pos.x, pos.y);
+        ctx.rotate(rotation);
+        ctx.translate(-pos.x, -pos.y);
 
-            ctx.restore();
-        }
+        ctx.fillStyle = color.color;
+        ctx.strokeStyle = 'black';
+        ctx.beginPath();
+        ctx.rect(pos.x - size / 2, pos.y - size / 2, size, size);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.restore();
     });
 }
 #end
