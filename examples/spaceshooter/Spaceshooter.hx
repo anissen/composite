@@ -1,6 +1,5 @@
 package examples.spaceshooter;
 
-import haxe.macro.Context;
 import Composite.EntityId;
 #if js
 import js.Browser;
@@ -89,13 +88,6 @@ inline function main() {
     }
     Browser.window.requestAnimationFrame(animate);
 
-    // -------------------------------------------------------------------------
-    // Setup ECS
-    // -------------------------------------------------------------------------
-
-    createPlayer({x: width / 2, y: height - 100});
-    // createPlayer({x: width / 2 + 100, y: height - 200});
-
     Browser.window.onblur = (event -> paused = true);
     Browser.window.onfocus = (event -> paused = false);
     Browser.window.onkeydown = (event -> keysPressed[event.key] = true);
@@ -103,7 +95,8 @@ inline function main() {
 }
 
 inline function init() {
-    // placeholder
+    // TODO: Initialize timers
+    createPlayer({x: width / 2, y: height - 100});
 }
 
 function update() {
@@ -133,6 +126,8 @@ function update() {
             }
         }
     });
+
+    // TODO: Remove this when the entity is available in the query (`contect.hasComponent(SquareRendering.ID))`)
     context.query(Group([Include(Position.ID), Include(Velocity.ID), Exclude(SquareRendering.ID)]), (components) -> {
         final position: Array<Position> = components[0];
         final velocity: Array<Velocity> = components[1];
@@ -215,6 +210,7 @@ function handleInput() {
                 trace('reset');
                 keysPressed.clear();
                 context.clear();
+                init();
             case 's':
                 trace('save');
                 final save = context.save();
@@ -258,19 +254,6 @@ function turn(speed: Float) {
 
 function shoot() {
     shootX(context.getEntitiesWithComponents(Group([Include(Player.ID), Include(CanShoot.ID)])));
-    // context.queryEach(Group([Include(Player.ID), Include(Position.ID), Include(SquareRendering.ID)]), (components) -> {
-    //     final e = context.createEntity('shot entity ' + entityCount++);
-    //     final pos: Position = components[1];
-    //     final square: SquareRendering = components[2];
-    //     final size = square.size;
-    //     final angle = square.turns * Math.PI * 2;
-    //     context.addComponent(e, ({x: pos.x + Math.cos(angle) * size / 2, y: pos.y + Math.sin(angle) * size / 2}: Position));
-
-    //     context.addComponent(e, ({x: Math.cos(angle), y: Math.sin(angle)}: Velocity));
-    //     context.addComponent(e, ({color: '#' + StringTools.hex(Math.floor(Math.random() * 16777215))}: Color));
-    //     context.addComponent(e, ({radius: 5 + Math.random() * 5}: CircleRendering));
-    //     context.addComponent(e, ({length: 10 + Math.floor(Math.random() * 10), positions: [], time_left: 0}: Tail));
-    // });
 }
 
 function shootX(entities: Array<EntityId>) {
@@ -312,6 +295,7 @@ function draw(context: Composite.Context, ctx: CanvasRenderingContext2D) {
         }
     });
 
+    // render circles
     context.queryEach(Group([Include(Position.ID), Include(CircleRendering.ID), Include(Color.ID)]), (components) -> {
         final pos: Position = components[0];
         final circle: CircleRendering = components[1];
@@ -322,6 +306,7 @@ function draw(context: Composite.Context, ctx: CanvasRenderingContext2D) {
         ctx.fill();
     });
 
+    // render squares
     context.queryEach(Group([Include(Position.ID), Include(SquareRendering.ID), Include(Color.ID)]), (components) -> {
         final pos: Position = components[0];
         final square: SquareRendering = components[1];
