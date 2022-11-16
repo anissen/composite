@@ -59,6 +59,7 @@ final moveSpeed = 500.0;
 final turnSpeed = 1.0;
 final shootSpeed = 250.0;
 final keysPressed = new Map<String, Bool>();
+var paused = false;
 var delta = 0.0;
 
 inline function main() {
@@ -75,9 +76,11 @@ inline function main() {
     function animate(time: Float) {
         delta = (time - timeAtLastUpdate) / 1000.0;
         timeAtLastUpdate = time;
-        handleInput();
-        update();
-        draw(context, ctx);
+        if (!paused) {
+            handleInput();
+            update();
+            draw(context, ctx);
+        }
         Browser.window.requestAnimationFrame(animate);
     }
     Browser.window.requestAnimationFrame(animate);
@@ -89,18 +92,10 @@ inline function main() {
     createPlayer({x: width / 2, y: height - 100});
     // createPlayer({x: width / 2 + 100, y: height - 200});
 
-    Browser.window.setInterval(() -> {
-        createEnemy();
-    }, 3000);
-
-    Browser.window.onkeydown = (event -> {
-        keysPressed[event.key] = true;
-        // event.preventDefault();
-    });
-    Browser.window.onkeyup = (event -> {
-        keysPressed[event.key] = false;
-        // event.preventDefault();
-    });
+    Browser.window.onblur = (event -> paused = true);
+    Browser.window.onfocus = (event -> paused = false);
+    Browser.window.onkeydown = (event -> keysPressed[event.key] = true);
+    Browser.window.onkeyup = (event -> keysPressed[event.key] = false);
 }
 
 inline function init() {
