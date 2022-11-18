@@ -196,7 +196,23 @@ class Context {
         return entityId;
     }
 
-    public function addComponents(entity: EntityId, ...components: Component) {
+    public function destroyEntity(entity: EntityId) {
+        final record = entityIndex[entity];
+        final archetype = record.archetype;
+        archetype.deleteRow(record.row);
+        // HACK: This is slow! We want to avoid this by simply marking the removed entity as inactive.
+        for (i => e in archetype.ids) {
+            if (i < record.row)
+                continue;
+            entityIndex.set(e, {
+                archetype: archetype,
+                row: i
+            });
+        }
+    }
+
+    // public function addComponents(entity: EntityId, ...components: Component) {
+    public function addComponents(entity: EntityId, components: Array<Component>) {
         for (c in components) {
             addComponent(entity, c);
         }

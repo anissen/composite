@@ -144,39 +144,43 @@ function update() {
     });
 
     // check for bullet vs. ship collisions
-    // context.queryEach(Group([Include(Position.ID), Include(CircleRendering.ID)]), (entity, components) -> {
-    //     context.queryEach(Group([Include(Position.ID), Include(SquareRendering.ID)]), (components2) -> {
-    //         final pos1: Position = components[0];
-    //         final circle: CircleRendering = components[1];
-    //         final pos2: Position = components2[0];
-    //         final square: SquareRendering = components2[1];
-    //         if (Math.sqrt(Math.pow(pos1.x - pos2.x, 2) + Math.pow(pos1.y - pos2.y, 2)) < circle.radius + square.size / 2) {
-    //             trace('dead!');
-    //         }
-    //     });
-    // });
+    context.queryEach(Group([Include(Position.ID), Include(CircleRendering.ID)]), (entity, components) -> {
+        context.queryEach(Group([Include(Position.ID), Include(SquareRendering.ID)]), (entity2, components2) -> {
+            final pos1: Position = components[0];
+            final circle: CircleRendering = components[1];
+            final pos2: Position = components2[0];
+            final square: SquareRendering = components2[1];
+            if (Math.sqrt(Math.pow(pos1.x - pos2.x, 2) + Math.pow(pos1.y - pos2.y, 2)) < circle.radius + square.size / 2) {
+                trace('entity $entity2 is dead!');
+                context.destroyEntity(entity2);
+                context.destroyEntity(entity);
+            }
+        });
+    });
 }
 
 function createPlayer(pos: Position) {
     final player = context.createEntity('Player');
-    context.addComponent(player, ({}: Player));
-    context.addComponent(player, pos);
-    context.addComponent(player, ({size: 20, turns: -1 / 4}: SquareRendering));
-    context.addComponent(player, ({color: '#' + StringTools.hex(Math.floor(Math.random() * 16777215))}: Color));
-    context.addComponent(player, ({shoot_cooldown: 0.1, time_left: 0.0}: CanShoot));
-    // context.addComponents(player, ({}: Player), pos, ({size: 20, turns: -1 / 4}: SquareRendering),
-    //     ({color: '#' + StringTools.hex(Math.floor(Math.random() * 16777215))}: Color), ({shoot_cooldown: 0.01, time_left: 0.2}: CanShoot));
+    context.addComponents(player, [
+        ({}: Player),
+        pos,
+        ({size: 20, turns: -1 / 4}: SquareRendering),
+        ({color: '#' + StringTools.hex(Math.floor(Math.random() * 16777215))}: Color),
+        ({shoot_cooldown: 0.5, time_left: 0.0}: CanShoot)
+    ]);
 }
 
 function createEnemy() {
     final enemy = context.createEntity('Enemy');
-    context.addComponent(enemy, ({x: Math.random() * width, y: 50}: Position));
     final turns = Math.random();
     final angle = turns * Math.PI * 2;
-    context.addComponent(enemy, ({size: 40, turns: turns}: SquareRendering));
-    context.addComponent(enemy, ({x: Math.cos(angle) * 50, y: Math.sin(angle) * 50}: Velocity));
-    context.addComponent(enemy, ({color: '#' + StringTools.hex(Math.floor(Math.random() * 16777215))}: Color));
-    context.addComponent(enemy, ({shoot_cooldown: 2.0, time_left: 5.0}: CanShoot));
+    context.addComponents(enemy, [
+        ({x: Math.random() * width, y: 50}: Position),
+        ({size: 40, turns: turns}: SquareRendering),
+        ({x: Math.cos(angle) * 50, y: Math.sin(angle) * 50}: Velocity),
+        ({color: '#' + StringTools.hex(Math.floor(Math.random() * 16777215))}: Color),
+        ({shoot_cooldown: 2.0, time_left: 3.0}: CanShoot)
+    ]);
 }
 
 function handleInput() {
@@ -188,6 +192,7 @@ function handleInput() {
             case 'ArrowRight': turn(turnSpeed);
             case 'ArrowLeft': turn(-turnSpeed);
             case ' ': shoot();
+            case 'e': createEnemy();
             case 'r':
                 trace('reset');
                 keysPressed.clear();
@@ -196,17 +201,13 @@ function handleInput() {
             case 's':
                 trace('save');
                 final save = context.save();
-                // trace(save);
                 Browser.window.localStorage.setItem('save', save);
             case 'l':
                 trace('load');
                 final save = Browser.window.localStorage.getItem('save');
-                // trace(save);
                 context.clear();
                 context.load(save);
-            case 'p':
-                trace('print');
-                context.printArchetypeGraph(context.rootArchetype);
+            case 'p': context.printArchetypeGraph(context.rootArchetype);
             case _:
         }
     }
