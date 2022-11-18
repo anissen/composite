@@ -464,11 +464,8 @@ class Context {
         final record = entityIndex[entity];
         final archetype = record.archetype;
         final type = archetype.type;
-        for (i => t in type) {
-            if (t == componentId)
-                return archetype.getCell(record.row, i);
-        }
-        return null;
+        final typeIndex = type.indexOf(componentId);
+        return typeIndex >= 0 ? archetype.getCell(record.row, typeIndex) : null;
     }
 
     public function getComponentsForEntity(entity: EntityId): Array<Any> {
