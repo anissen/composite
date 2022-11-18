@@ -55,9 +55,10 @@ final context = new Composite.Context();
 var entityCount = 0;
 final width = 600;
 final height = 600;
-final moveSpeed = 500.0;
-final turnSpeed = 1.0;
-final shootSpeed = 250.0;
+final moveSpeed = 5000.0;
+final moveDampening = 0.1;
+final turnSpeed = 0.8;
+final shootSpeed = 150.0;
 final keysPressed = new Map<String, Bool>();
 var paused = false;
 var delta = 0.0;
@@ -139,6 +140,14 @@ function update() {
         }
     });
 
+    // dampen player speed
+    context.queryEach(Group([Include(Player.ID), Include(Velocity.ID), Include(SquareRendering.ID)]), (entity, components) -> {
+        final vel: Velocity = components[1];
+        final damp = (1.0 - moveDampening) * (1.0 - delta);
+        vel.x *= damp;
+        vel.y *= damp;
+    });
+
     // update tail
     context.queryEach(Group([Include(Position.ID), Include(Tail.ID)]), (entity, components) -> {
         final pos: Position = components[0];
@@ -174,6 +183,7 @@ function createPlayer(pos: Position) {
     context.addComponents(player, [
         ({}: Player),
         pos,
+        ({x: 0, y: 0}: Velocity),
         ({size: 20, turns: -1 / 4}: SquareRendering),
         ({color: '#' + StringTools.hex(Math.floor(Math.random() * 16777215))}: Color),
         ({shoot_cooldown: 0.5, time_left: 0.0, auto_shoot: false}: CanShoot)
@@ -206,6 +216,7 @@ function handleInput() {
                     Include(Player.ID),
                     Include(CanShoot.ID),
                     Include(Position.ID),
+                    Include(Velocity.ID),
                     Include(SquareRendering.ID)
                 ]))) {
                     shoot(e);
@@ -232,17 +243,12 @@ function handleInput() {
 }
 
 function move(speed: Float) {
-    context.queryEach(Group([Include(Player.ID), Include(Position.ID), Include(SquareRendering.ID)]), (entity, components) -> {
-        final pos: Position = components[1];
+    context.queryEach(Group([Include(Player.ID), Include(Velocity.ID), Include(SquareRendering.ID)]), (entity, components) -> {
+        final vel: Velocity = components[1];
         final square: SquareRendering = components[2];
-        final size = square.size;
         final angle = square.turns * Math.PI * 2;
-        pos.x += Math.cos(angle) * speed * delta;
-        pos.y += Math.sin(angle) * speed * delta;
-        if (pos.x < size / 2) pos.x = size / 2;
-        if (pos.x > width - size / 2) pos.x = width - size / 2;
-        if (pos.y < size / 2) pos.y = size / 2;
-        if (pos.y > height - size / 2) pos.y = height - size / 2;
+        vel.x += Math.cos(angle) * speed * delta;
+        vel.y += Math.sin(angle) * speed * delta;
     });
 }
 
@@ -259,17 +265,33 @@ function shoot(entity: EntityId) {
     canShoot.time_left = canShoot.shoot_cooldown;
 
     final pos: Position = context.getComponent(entity, Position.ID);
+    final entityVel: Velocity = context.getComponent(entity, Velocity.ID);
+    final velMagnitude = Math.sqrt(entityVel.x * entityVel.x + entityVel.y * entityVel.y);
     final square: SquareRendering = context.getComponent(entity, SquareRendering.ID);
     final size = square.size;
     final angle = square.turns * Math.PI * 2;
 
     final shotEntity = context.createEntity('shot entity ' + entityCount++);
     context.addComponents(shotEntity, [
-        ({x: pos.x + Math.cos(angle) * size, y: pos.y + Math.sin(angle) * size}: Position),
-        ({x: Math.cos(angle) * shootSpeed, y: Math.sin(angle) * shootSpeed}: Velocity),
-        ({color: '#' + StringTools.hex(Math.floor(Math.random() * 16777215))}: Color),
-        ({radius: 5 + Math.random() * 5}: CircleRendering),
-        ({length: 10 + Math.floor(Math.random() * 10), positions: [], time_left: 0}: Tail)
+        ({
+            x: pos.x + Math.cos(angle) * size,
+            y: pos.y + Math.sin(angle) * size,
+        }: Position),
+        ({
+            x: Math.cos(angle) * (shootSpeed + Math.max(velMagnitude, 10)),
+            y: Math.sin(angle) * (shootSpeed + Math.max(velMagnitude, 10)),
+        }: Velocity),
+        ({
+            color: '#' + StringTools.hex(Math.floor(Math.random() * 16777215))
+        }: Color),
+        ({
+            radius: 5 + Math.random() * 5
+        }: CircleRendering),
+        ({
+            length: 10 + Math.floor(Math.random() * 10),
+            positions: [],
+            time_left: 0,
+        }: Tail)
     ]);
 }
 
