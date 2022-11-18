@@ -48,6 +48,7 @@ final class Tail implements Composite.Component {
 final class CanShoot implements Composite.Component {
     public var shoot_cooldown: Float;
     public var time_left: Float;
+    public var auto_shoot: Bool;
 }
 
 final context = new Composite.Context();
@@ -106,7 +107,16 @@ function update() {
         createEnemy();
     }
 
-    shootX(context.getEntitiesWithComponents(Group([Include(CanShoot.ID), Exclude(Player.ID)])));
+    // reduce shoot timer, shoot if not possible and not the Player
+    context.queryEach(Group([Include(CanShoot.ID)]), (entity, components) -> {
+        final canShoot: CanShoot = components[0];
+        canShoot.time_left -= delta;
+        if (canShoot.time_left > 0) return;
+
+        if (canShoot.auto_shoot) {
+            shoot(entity);
+        }
+    });
 
     // update positions from velocities
     context.queryEach(Group([Include(Position.ID), Include(Velocity.ID)]), (entity, components) -> {
@@ -166,7 +176,7 @@ function createPlayer(pos: Position) {
         pos,
         ({size: 20, turns: -1 / 4}: SquareRendering),
         ({color: '#' + StringTools.hex(Math.floor(Math.random() * 16777215))}: Color),
-        ({shoot_cooldown: 0.5, time_left: 0.0}: CanShoot)
+        ({shoot_cooldown: 0.5, time_left: 0.0, auto_shoot: false}: CanShoot)
     ]);
 }
 
@@ -179,7 +189,7 @@ function createEnemy() {
         ({size: 40, turns: turns}: SquareRendering),
         ({x: Math.cos(angle) * 50, y: Math.sin(angle) * 50}: Velocity),
         ({color: '#' + StringTools.hex(Math.floor(Math.random() * 16777215))}: Color),
-        ({shoot_cooldown: 2.0, time_left: 3.0}: CanShoot)
+        ({shoot_cooldown: 2.0, time_left: 3.0, auto_shoot: true}: CanShoot)
     ]);
 }
 
@@ -191,7 +201,15 @@ function handleInput() {
             case 'ArrowDown': move(-moveSpeed);
             case 'ArrowRight': turn(turnSpeed);
             case 'ArrowLeft': turn(-turnSpeed);
-            case ' ': shoot();
+            case ' ':
+                for (e in context.getEntitiesWithComponents(Group([
+                    Include(Player.ID),
+                    Include(CanShoot.ID),
+                    Include(Position.ID),
+                    Include(SquareRendering.ID)
+                ]))) {
+                    shoot(e);
+                }
             case 'e': createEnemy();
             case 'r':
                 trace('reset');
@@ -235,30 +253,24 @@ function turn(speed: Float) {
     });
 }
 
-function shoot() {
-    shootX(context.getEntitiesWithComponents(Group([Include(Player.ID), Include(CanShoot.ID)])));
-}
+function shoot(entity: EntityId) {
+    final canShoot: CanShoot = context.getComponent(entity, CanShoot.ID);
+    if (canShoot.time_left > 0) return;
+    canShoot.time_left = canShoot.shoot_cooldown;
 
-function shootX(entities: Array<EntityId>) {
-    for (e in entities) {
-        final canShoot: CanShoot = context.getComponent(e, CanShoot.ID);
-        canShoot.time_left -= delta;
-        if (canShoot.time_left > 0) continue;
+    final pos: Position = context.getComponent(entity, Position.ID);
+    final square: SquareRendering = context.getComponent(entity, SquareRendering.ID);
+    final size = square.size;
+    final angle = square.turns * Math.PI * 2;
 
-        canShoot.time_left = canShoot.shoot_cooldown;
-
-        final pos: Position = context.getComponent(e, Position.ID);
-        final square: SquareRendering = context.getComponent(e, SquareRendering.ID);
-        final size = square.size;
-        final angle = square.turns * Math.PI * 2;
-
-        final e = context.createEntity('shot entity ' + entityCount++);
-        context.addComponent(e, ({x: pos.x + Math.cos(angle) * size, y: pos.y + Math.sin(angle) * size}: Position));
-        context.addComponent(e, ({x: Math.cos(angle) * shootSpeed, y: Math.sin(angle) * shootSpeed}: Velocity));
-        context.addComponent(e, ({color: '#' + StringTools.hex(Math.floor(Math.random() * 16777215))}: Color));
-        context.addComponent(e, ({radius: 5 + Math.random() * 5}: CircleRendering));
-        context.addComponent(e, ({length: 10 + Math.floor(Math.random() * 10), positions: [], time_left: 0}: Tail));
-    }
+    final shotEntity = context.createEntity('shot entity ' + entityCount++);
+    context.addComponents(shotEntity, [
+        ({x: pos.x + Math.cos(angle) * size, y: pos.y + Math.sin(angle) * size}: Position),
+        ({x: Math.cos(angle) * shootSpeed, y: Math.sin(angle) * shootSpeed}: Velocity),
+        ({color: '#' + StringTools.hex(Math.floor(Math.random() * 16777215))}: Color),
+        ({radius: 5 + Math.random() * 5}: CircleRendering),
+        ({length: 10 + Math.floor(Math.random() * 10), positions: [], time_left: 0}: Tail)
+    ]);
 }
 
 function draw(context: Composite.Context, ctx: CanvasRenderingContext2D) {
