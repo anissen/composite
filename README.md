@@ -23,3 +23,7 @@ _*Warning*: This project is a pre-alpha work-in-progress._
 
 - [ ] Event system for communication between query functions
 - [ ] Handle queries for when components are added/changed/removed
+
+## Project wishlist
+
+- [ ] Hook up testing to github CI

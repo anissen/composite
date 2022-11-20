@@ -37,7 +37,7 @@ function main() {
 
 	// TODO: I would like to be able to do this:
 	/*
-	context.addSystem([Position_id, Velocity_id], (position, velocity) -> {
+	context.query([Position, Velocity], (position, velocity) -> {
 		position.x += velocity.x;
 		position.y += velocity.y;
 	});
