@@ -52,7 +52,6 @@ final class CanShoot implements Composite.Component {
 }
 
 final context = new Composite.Context();
-var entityCount = 0;
 final width = 600;
 final height = 600;
 final moveSpeed = 5000.0;
@@ -271,7 +270,7 @@ function shoot(entity: EntityId) {
     final size = square.size;
     final angle = square.turns * Math.PI * 2;
 
-    final shotEntity = context.createEntity('shot entity ' + entityCount++);
+    final shotEntity = context.createEntity('Shot entity');
     context.addComponents(shotEntity, [
         ({
             x: pos.x + Math.cos(angle) * size,
