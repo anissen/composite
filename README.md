@@ -2,28 +2,70 @@
 
 A tiny [entity component system](https://en.wikipedia.org/wiki/Entity_component_system) library.
 
-Composite is not meant to be used directly but instead to be integrated into other libraries, frameworks or game engines. I plan to use it for some of my own projects, in particular [Cosy](https://github.com/anissen/cosy) (a programming language) and [Crafty](https://github.com/anissen/crafty) (a game engine).
+Composite is not meant to be used directly but instead to be integrated into other libraries, frameworks or game engines.
+
+I am using Composite in some of my own projects; [Cosy](https://github.com/anissen/cosy) (a programming language) and [Crafty](https://github.com/anissen/crafty) (a game engine).
 
 ---
 
-_*Warning*: This project is a pre-alpha work-in-progress._
+:warning: **This project is a pre-alpha work-in-progress.**
+
+Also, Composite will probably never have broad applicability as I'm making this library to fit my own purposes.
 
 ---
 
-## Bugs
+## Example usage in regular Haxe code
+```haxe
+@:structInit
+final class Position implements Component {
+    public var x: Float;
+    public var y: Float;
+}
 
+@:structInit
+final class Velocity implements Component {
+    public var x: Float;
+    public var y: Float;
+}
 
-## TODO's
+final context = new Composite.Context();
 
-- [ ] Try using it from a simple game like setting
-- [ ] Try using it from Crafty
-- [ ] Do some benchmarks
+// create entity
+final e = context.createEntity('Player');
+context.addComponents(e, [
+    ({x: 200, y: 200}: Position),
+    ({x: 1.2, y: -3.4}: Velocity),
+]);
 
-## Wishlist
+// query entities
+context.queryEach(Group([Include(Position.ID), Include(Velocity.ID)]), (entity, components) -> {
+    final pos: Position = components[0];
+    final vel: Velocity = components[1];
+    pos.x += vel.x * delta;
+    pos.y += vel.y * delta;
+});
+```
 
-- [ ] Event system for communication between query functions
-- [ ] Handle queries for when components are added/changed/removed
+## Example usage in [Cosy](https://github.com/anissen/cosy)
+```rust
+struct Position {
+    mut x Num
+    mut y Num
+}
+struct Velocity {
+    mut x Num
+    mut y Num
+}
 
-## Project wishlist
+// create entity
+spawn(
+    Position { x = 200, y = 200 }, 
+    Velocity { x = 1.2, y = -3.4 }
+)
 
-- [ ] Hook up testing to github CI
+// query entities
+query mut Position p, Velocity v {
+    p.x += v.x * delta
+    p.y += v.y * delta
+}
+``` 
