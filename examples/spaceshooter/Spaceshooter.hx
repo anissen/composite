@@ -1,51 +1,53 @@
 package examples.spaceshooter;
 
-import Composite.EntityId;
+import composite.*;
+import composite.Composite.Component;
+import composite.Composite.EntityId;
 #if js
 import js.Browser;
 import js.Browser.document;
 import js.html.CanvasRenderingContext2D;
 
 @:structInit
-final class Player implements Composite.Component {}
+final class Player implements Component {}
 
 @:structInit
-final class Position implements Composite.Component {
+final class Position implements Component {
     public var x: Float;
     public var y: Float;
 }
 
 @:structInit
-final class Velocity implements Composite.Component {
+final class Velocity implements Component {
     public var x: Float;
     public var y: Float;
 }
 
 @:structInit
-final class Color implements Composite.Component {
+final class Color implements Component {
     public var color: String;
 }
 
 @:structInit
-final class CircleRendering implements Composite.Component {
+final class CircleRendering implements Component {
     public var radius: Float;
 }
 
 @:structInit
-final class SquareRendering implements Composite.Component {
+final class SquareRendering implements Component {
     public var size: Float;
     public var turns: Float;
 }
 
 @:structInit
-final class Tail implements Composite.Component {
+final class Tail implements Component {
     public var length: Int;
     public var positions: Array<{x: Float, y: Float}>;
     public var time_left: Float;
 }
 
 @:structInit
-final class CanShoot implements Composite.Component {
+final class CanShoot implements Component {
     public var shoot_cooldown: Float;
     public var time_left: Float;
     public var auto_shoot: Bool;
@@ -294,7 +296,7 @@ function shoot(entity: EntityId) {
     ]);
 }
 
-function draw(context: Composite.Context, ctx: CanvasRenderingContext2D) {
+function draw(context: composite.Composite.Context, ctx: CanvasRenderingContext2D) {
     ctx.fillStyle = 'white';
     ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 

@@ -1,4 +1,4 @@
-package macros;
+package composite.macros;
 
 #if macro
 import haxe.macro.Context;
@@ -10,10 +10,10 @@ function buildComponent() {
 
     final pos = Context.currentPos();
     var fields = Context.getBuildFields();
-    fields.push({ 
+    fields.push({
         name: "ID",
         access: [APublic, AStatic, AFinal, AInline],
-        kind: FieldType.FVar(macro: Int, macro $v{componentTypeId}),
+        kind: FieldType.FVar(macro : Int, macro $v{componentTypeId}),
         pos: pos,
     });
     fields.push({
@@ -27,5 +27,4 @@ function buildComponent() {
     });
     return fields;
 }
-
 #end

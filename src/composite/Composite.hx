@@ -1,4 +1,4 @@
-package;
+package composite;
 
 import haxe.Json;
 
@@ -7,7 +7,9 @@ import haxe.Json;
 abstract EntityId(haxe.Int32) from Int to Int {}
 typedef Components = Array<EntityId>;
 
-@:autoBuild(macros.Component.buildComponent())
+#if !macro
+@:autoBuild(composite.macros.Component.buildComponent())
+#end
 extern interface Component {
     function getID(): Int;
 }
@@ -15,6 +17,14 @@ extern interface Component {
 @:structInit
 class EcsId implements Component {
     public final name: String;
+
+    #if macro
+    public static inline final ID: Int = 777;
+
+    public function getID() {
+        return 666;
+    }
+    #end
 
     public function toString() {
         return 'EcsId { name: "$name" }';
@@ -226,7 +236,7 @@ class Context {
         final record = entityIndex[entity];
         final archetype = record.archetype;
         final type = archetype.type;
-        final componentId = componentId ?? componentData.getID();
+        final componentId = (componentId != null ? componentId : componentData.getID());
         if (type.contains(componentId)) {
             trace('component $componentId already exists on entity $entity');
             return;

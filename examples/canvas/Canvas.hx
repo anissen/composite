@@ -1,6 +1,6 @@
 package examples.canvas;
 
-#if js
+import composite.*;
 import js.Browser;
 import js.Browser.document;
 import js.html.CanvasRenderingContext2D;
@@ -43,8 +43,8 @@ final class Tail implements Composite.Component {
 inline function main() {
     var timeAtLastUpdate = 0.0;
     final canvas = document.createCanvasElement();
-    canvas.width = 800;
-    canvas.height = 800;
+    canvas.width = 600;
+    canvas.height = 600;
     canvas.style.border = "1px solid #4C4E52";
     document.body.appendChild(canvas);
 
@@ -122,93 +122,70 @@ function draw(context: Composite.Context, ctx: CanvasRenderingContext2D, dt: Flo
     ctx.fillStyle = 'white';
     ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 
-    context.query(Group([Include(Position.ID), Include(Velocity.ID)]), (components) -> {
-        final position: Array<Position> = components[0];
-        final velocity: Array<Velocity> = components[1];
-        for (i in 0...position.length) {
-            position[i].x += velocity[i].x;
-            position[i].y += velocity[i].y;
-            if (position[i].x < 0 || position[i].x > ctx.canvas.width) {
-                velocity[i].x = -velocity[i].x;
-            }
-            if (position[i].y < 0 || position[i].y > ctx.canvas.height) {
-                velocity[i].y = -velocity[i].y;
-            }
+    context.queryEach(Group([Include(Position.ID), Include(Velocity.ID)]), (entities, components) -> {
+        final pos: Position = components[0];
+        final vel: Velocity = components[1];
+        pos.x += vel.x;
+        pos.y += vel.y;
+        if (pos.x < 0 || pos.x > ctx.canvas.width) {
+            vel.x = -vel.x;
+        }
+        if (pos.y < 0 || pos.y > ctx.canvas.height) {
+            vel.y = -vel.y;
         }
     });
 
     // update tail
-    context.query(Group([Include(Position.ID), Include(Tail.ID)]), (components) -> {
-        final positions: Array<Position> = components[0];
-        final tails: Array<Tail> = components[1];
-        for (i in 0...positions.length) {
-            final tail = tails[i];
-            tail.time_left -= dt;
-            if (tail.time_left <= 0) {
-                tail.time_left = 0.025;
-                if (tail.positions.length > tail.length) {
-                    tail.positions.shift();
-                }
-                final pos = positions[i];
-                tail.positions.push({x: pos.x, y: pos.y});
+    context.queryEach(Group([Include(Position.ID), Include(Tail.ID)]), (entities, components) -> {
+        final pos: Position = components[0];
+        final tail: Tail = components[1];
+        tail.time_left -= dt;
+        if (tail.time_left <= 0) {
+            tail.time_left = 0.025;
+            if (tail.positions.length > tail.length) {
+                tail.positions.shift();
             }
+            tail.positions.push({x: pos.x, y: pos.y});
         }
     });
 
     // render tail
-    context.query(Group([Include(Tail.ID), Include(Color.ID)]), (components) -> {
-        final tails: Array<Tail> = components[0];
-        final colors: Array<Color> = components[1];
-        for (i in 0...tails.length) {
-            final tail = tails[i];
-            final color = colors[i].color;
-
-            ctx.fillStyle = color;
-            for (tailPos in tail.positions) {
-                ctx.beginPath();
-                ctx.arc(tailPos.x, tailPos.y, 2, 0, Math.PI * 2);
-                ctx.fill();
-            }
-        }
-    });
-
-    context.query(Group([Include(Position.ID), Include(CircleRendering.ID), Include(Color.ID)]), (components) -> {
-        final position: Array<Position> = components[0];
-        final circle: Array<CircleRendering> = components[1];
-        final colors: Array<Color> = components[2];
-        for (i in 0...position.length) {
-            final pos = position[i];
-            final radius = circle[i].radius;
-            final color = colors[i].color;
-            ctx.fillStyle = color;
+    context.queryEach(Group([Include(Tail.ID), Include(Color.ID)]), (entities, components) -> {
+        final tail: Tail = components[0];
+        final color: Color = components[1];
+        ctx.fillStyle = color.color;
+        for (tailPos in tail.positions) {
             ctx.beginPath();
-            ctx.arc(pos.x, pos.y, radius, 0, Math.PI * 2);
+            ctx.arc(tailPos.x, tailPos.y, 2, 0, Math.PI * 2);
             ctx.fill();
         }
     });
 
-    context.query(Group([Include(Position.ID), Include(SquareRendering.ID), Include(Color.ID)]), (components) -> {
-        final position: Array<Position> = components[0];
-        final square: Array<SquareRendering> = components[1];
-        final colors: Array<Color> = components[2];
-        for (i in 0...position.length) {
-            final pos = position[i];
-            final size = square[i].size;
-            final rotation = square[i].rotation;
-            final color = colors[i].color;
+    context.queryEach(Group([Include(Position.ID), Include(CircleRendering.ID), Include(Color.ID)]), (entities, components) -> {
+        final pos: Position = components[0];
+        final circle: CircleRendering = components[1];
+        final color: Color = components[2];
+        final radius = circle.radius;
+        ctx.fillStyle = color.color;
+        ctx.beginPath();
+        ctx.arc(pos.x, pos.y, radius, 0, Math.PI * 2);
+        ctx.fill();
+    });
 
-            ctx.save();
-            ctx.translate(pos.x + size / 2, pos.y + size / 2);
-            ctx.rotate(rotation);
-            ctx.translate(-(pos.x + size / 2), -(pos.y + size / 2));
-
-            ctx.fillStyle = color;
-            ctx.beginPath();
-            ctx.rect(pos.x, pos.y, size, size);
-            ctx.fill();
-
-            ctx.restore();
-        }
+    context.queryEach(Group([Include(Position.ID), Include(SquareRendering.ID), Include(Color.ID)]), (entities, components) -> {
+        final pos: Position = components[0];
+        final square: SquareRendering = components[1];
+        final color: Color = components[2];
+        final size = square.size;
+        final rotation = square.rotation;
+        ctx.save();
+        ctx.translate(pos.x + size / 2, pos.y + size / 2);
+        ctx.rotate(rotation);
+        ctx.translate(-(pos.x + size / 2), -(pos.y + size / 2));
+        ctx.fillStyle = color.color;
+        ctx.beginPath();
+        ctx.rect(pos.x, pos.y, size, size);
+        ctx.fill();
+        ctx.restore();
     });
 }
-#end
