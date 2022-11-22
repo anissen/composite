@@ -10,7 +10,7 @@ typedef Components = Array<EntityId>;
 #if !macro
 @:autoBuild(composite.macros.Component.buildComponent())
 #end
-extern interface Component {
+interface Component {
     function getID(): Int;
 }
 
