@@ -584,6 +584,7 @@ class Context {
             for (archetype in archetypes) {
                 // TODO: Could we avoid creating and copying arrays here? Maybe allow `fn` to index into the component arrays of the different archetypes?
                 final termData = archetype.getColumn(archetype.type.indexOf(term));
+                if (termData.length == 0) continue;
                 componentsForTerms[i] = componentsForTerms[i].concat(termData);
             }
         }
