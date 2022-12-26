@@ -1,7 +1,8 @@
 package tests;
 
-import Composite.Archetype;
 import utest.Assert;
+import composite.*;
+import composite.Composite.Archetype;
 
 @:structInit
 final class TestPositionComponent implements Composite.Component {
