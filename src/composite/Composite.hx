@@ -573,9 +573,9 @@ class Context {
 
     public function query(expression: Expression, fn: (entities: Array<EntityId>, components: Array<Any>) -> Void) {
         final parsed = parseExpression(expression);
-        final componentsForTerms = [for (_ in parsed.includes) []];
+        final componentsForTerms: Array<Array<Any>> = [for (_ in parsed.includes) []];
         final archetypes = queryArchetypes(parsed.includes, parsed.excludes);
-        var entities = [];
+        var entities: Array<EntityId> = [];
 
         for (archetype in archetypes) {
             entities = entities.concat(archetype.ids); // TODO: Not very elegant!
@@ -593,18 +593,30 @@ class Context {
     }
 
     public function queryEach(expression: Expression, fn: (entity: EntityId, components: Array<Any>) -> Void) {
-        query(expression, (entities, components) -> {
-            if (entities.length == 0) return;
-            final rows = entities.length;
-            for (rowIndex in 0...rows) {
-                final row = [];
-                for (c in components) {
-                    final column: Array<Any> = c;
-                    row.push(column[rowIndex]);
-                }
-                fn(entities[rowIndex], row);
+        final parsed = parseExpression(expression);
+        final componentsForTerms: Array<Array<Any>> = [for (_ in parsed.includes) []];
+        final archetypes = queryArchetypes(parsed.includes, parsed.excludes);
+        var entities: Array<EntityId> = [];
+
+        for (archetype in archetypes) {
+            entities = entities.concat(archetype.ids); // TODO: Not very elegant!
+        }
+        if (entities.length == 0) return;
+
+        for (i => term in parsed.includes) {
+            for (archetype in archetypes) {
+                // TODO: Could we avoid creating and copying arrays here? Maybe allow `fn` to index into the component arrays of the different archetypes?
+                final termData = archetype.getColumn(archetype.type.indexOf(term));
+                if (termData.length == 0) continue;
+                componentsForTerms[i] = componentsForTerms[i].concat(termData);
             }
-        });
+        }
+
+        final rows = entities.length;
+        for (rowIndex in 0...rows) {
+            final row = [for (column in componentsForTerms) column[rowIndex]];
+            fn(entities[rowIndex], row);
+        }
     }
 
     public function getEntitiesWithComponents(expression: Expression): Array<EntityId> {
